@@ -1,0 +1,4 @@
+/.env
+/data/guildInfo/
+node_modules/
+/data/square
