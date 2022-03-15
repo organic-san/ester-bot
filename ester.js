@@ -186,7 +186,6 @@ client.on('messageCreate', async msg =>{
                     guildInformation.pushGuildInfo(
                         await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
                     );
-                    guildInformation.getGuild(element).sortUser();
                 });
             } else {
                 const thisGI = new guild.GuildInformation(msg.guild, []);
@@ -666,7 +665,6 @@ client.on('guildMemberRemove', member => {
 //#region 機器人被加入、踢出觸發事件guildCreate、guildDelete
 client.on("guildCreate", guild2 => {
     if(!isready) return;
-    //TODO: acid bot 資料轉移處理(參考: line177)
                 
     const filename = process.env.ACID_FILEROUTE;
     if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
@@ -677,7 +675,6 @@ client.on("guildCreate", guild2 => {
             guildInformation.pushGuildInfo(
                 await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
             );
-            guildInformation.getGuild(element).sortUser();
         });
         console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (新增事件觸發，原有資料已轉移)`);
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
