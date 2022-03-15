@@ -173,8 +173,8 @@ module.exports = {
             }
         } else { 
             //權限
-            if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_GUILD)){ 
-                return interaction.reply({content: "你沒有管理伺服器的權限，無法使用本功能。", ephemeral: true});
+            if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+                return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
             }
         }
         

@@ -71,8 +71,8 @@ module.exports = {
      * @param {guild.GuildInformation} guildInformation 
      */
 	async execute(interaction, guildInformation) {
-        if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_GUILD)){ 
-            return interaction.reply({content: "你沒有管理伺服器的權限，別以為能亂突破", ephemeral: true});
+        if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+            return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
         }
         if(interaction.options.getSubcommandGroup(false) === 'set') {
 

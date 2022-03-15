@@ -174,11 +174,27 @@ client.on('messageCreate', async msg =>{
         if(msg.webhookId) return;
 
         if(!guildInformation.has(msg.guild.id)){
-            const thisGI = new guild.GuildInformation(msg.guild, []);
-            guildInformation.addGuild(thisGI);
-            console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/message)`);
-            client.channels.fetch(process.env.CHECK_CH_ID)
-                .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/message)`));
+            const filename = process.env.ACID_FILEROUTE;
+            if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
+                console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/message，原有資料已轉移)`);
+                client.channels.fetch(process.env.CHECK_CH_ID)
+                    .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/message，原有資料已轉移)`));
+                fs.readFile(filename + "/" + msg.guild.id + ".json", async (err, text) => {
+                    if (err)
+                        throw err;
+                    const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
+                    guildInformation.pushGuildInfo(
+                        await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
+                    );
+                    guildInformation.getGuild(element).sortUser();
+                });
+            } else {
+                const thisGI = new guild.GuildInformation(msg.guild, []);
+                guildInformation.addGuild(thisGI);
+                console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/message)`);
+                client.channels.fetch(process.env.CHECK_CH_ID)
+                    .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/message)`));
+            }
         }
         guildInformation.updateGuild(msg.guild);
 
@@ -561,10 +577,10 @@ client.on('messageCreate', async msg =>{
                                 const ownerId = client.guilds.cache.get(element.id).ownerId;
                                 const guildName = client.guilds.cache.get(element.id).name;
                                 const owner = await client.users.fetch(ownerId);
-                                owner.send(`您好，我是acid bot的開發者 有機酸。\n` + 
+                                owner.send(`您好，我是ester bot的開發者 有機酸。\n` + 
                                 `目前打算逐步將機器人的指令替換成斜線指令(slash command)，因此需要將新的權限賦予機器人才能使用。\n` + 
                                 `請輕點此連結以賦予 **${client.user.tag}** 在您的伺服器中使用斜線指令(不需將機器人踢出):\n` + 
-                                `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=536270990591&scope=bot%20applications.commands\n` + 
+                                process.env.BOT_INVITE_LINK +
                                 `感謝您持續使用本機器人，今後將持續添加新功能，歡迎加入此伺服器並聯絡organic_san_2#0500\nhttps://discord.gg/hveXGk5Qmz`);
                             });
                         }
@@ -650,25 +666,53 @@ client.on('guildMemberRemove', member => {
 //#region 機器人被加入、踢出觸發事件guildCreate、guildDelete
 client.on("guildCreate", guild2 => {
     if(!isready) return;
-
-    if(!guildInformation.has(guild2.id)){
-        const thisGI = new guild.GuildInformation(guild2, []);
-        guildInformation.addGuild(thisGI);
+    //TODO: acid bot 資料轉移處理(參考: line177)
+                
+    const filename = process.env.ACID_FILEROUTE;
+    if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
+        fs.readFile(filename + "/" + msg.guild.id + ".json", async (err, text) => {
+            if (err)
+                throw err;
+            const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
+            guildInformation.pushGuildInfo(
+                await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
+            );
+            guildInformation.getGuild(element).sortUser();
+        });
+        console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (新增事件觸發，原有資料已轉移)`);
+        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
+            channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發，原有資料已轉移)`)
+        );
+        if(guild2.systemChannel){
+            const l = client.user.tag;
+            guild2.systemChannel.send(`歡迎使用${l}！使用斜線指令(/help)來查詢我的功能！`).catch(err => console.log(err))
+        }
+        guild2.fetchOwner().then(owner => { 
+            owner.send(
+                `您或您伺服器的管理員剛剛讓 **${client.user.tag}** 加入了 **${guild2.name}**！\n` + 
+                `我是繼承acid bot#7812的功能的機器人，原先的設定資料已經轉移到我這裡。\n` +
+                `我的功能可以使用/help來查詢！`).catch(err => console.log(err)); 
+        }).catch(err => console.log(err));
+    } else {
+        if(!guildInformation.has(guild2.id)){
+            const thisGI = new guild.GuildInformation(guild2, []);
+            guildInformation.addGuild(thisGI);
+        }
+        console.log(`${client.user.tag} 加入了 ${guild2.name} (${guild2.id}) (新增事件觸發)`);
+        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
+            channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發)`)
+        );
+        if(guild2.systemChannel){
+            const l = client.user.tag;
+            guild2.systemChannel.send(`歡迎使用${l}！使用斜線指令(/help)來查詢我的功能！`).catch(err => console.log(err))
+        }
+        guild2.fetchOwner().then(owner => { 
+            owner.send(
+                `您或您伺服器的管理員剛剛讓 **${client.user.tag}** 加入了 **${guild2.name}**！\n\n` + 
+                `我的功能可以使用/help來查詢！`).catch(err => console.log(err)); 
+        }).catch(err => console.log(err));
     }
-    var a = 0;
-    console.log(`${client.user.tag} 加入了 ${guild2.name} (${guild2.id}) (新增事件觸發)`);
-    client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
-        channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發)`)
-    );
-    if(guild2.systemChannel){
-        const l = client.user.tag;
-        guild2.systemChannel.send(`歡迎使用${l}！使用斜線指令(/help)來查詢我的功能！`).catch(err => console.log(err))
-    }
-    guild2.fetchOwner().then(owner => { 
-        owner.send(
-            `您或您伺服器的管理員剛剛讓 **${client.user.tag}** 加入了 **${guild2.name}**！\n\n` + 
-            `我的功能可以使用/help來查詢！`).catch(err => console.log(err)); 
-    }).catch(err => console.log(err));
+    
     
  });
 

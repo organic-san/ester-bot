@@ -1,8 +1,8 @@
 {
-  "name": "acid-bot",
+  "name": "ester-bot",
   "version": "1.0.0",
-  "description": "acid",
-  "main": "acid.js",
+  "description": "ester",
+  "main": "ester.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
