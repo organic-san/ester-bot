@@ -183,7 +183,7 @@ client.on('messageCreate', async msg =>{
                     if (err)
                         throw err;
                     const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
-                    guildInformation.pushGuildInfo(
+                    guildInformation.addGuild(
                         await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
                     );
                 });
@@ -672,7 +672,7 @@ client.on("guildCreate", guild2 => {
             if (err)
                 throw err;
             const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
-            guildInformation.pushGuildInfo(
+            guildInformation.addGuild(
                 await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
             );
         });
