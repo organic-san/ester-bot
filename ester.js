@@ -667,8 +667,8 @@ client.on("guildCreate", guild2 => {
     if(!isready) return;
                 
     const filename = process.env.ACID_FILEROUTE;
-    if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
-        fs.readFile(filename + "/" + msg.guild.id + ".json", async (err, text) => {
+    if(fs.readdirSync(filename).includes(guild2.id + ".json")) {
+        fs.readFile(filename + "/" + guild2.id + ".json", async (err, text) => {
             if (err)
                 throw err;
             const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
@@ -676,7 +676,7 @@ client.on("guildCreate", guild2 => {
                 await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
             );
         });
-        console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (新增事件觸發，原有資料已轉移)`);
+        console.log(`${client.user.tag} 加入了 ${guild2.name} (${guild2.id}) (新增事件觸發，原有資料已轉移)`);
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
             channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發，原有資料已轉移)`)
         );
