@@ -5,7 +5,6 @@ const prefix = require('./JSONHome/prefix.json');
 const textCommand = require('./class/textModule');
 const musicbase = require('./class/musicList');
 const guild = require('./class/guildInformation');
-const abyss = require('./class/abyss');
 
 const fs = require('fs');
 require('dotenv').config();
@@ -118,10 +117,11 @@ client.on('interactionCreate', async interaction => {
         );
     }
     guildInformation.updateGuild(interaction.guild);
-    record.interactionCount+=1;
-    record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
 
     if (!interaction.isCommand()) return;
+    record.interactionCount+=1;
+    record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
+    
     if(!interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
         !interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.ADD_REACTIONS))
         return interaction.reply({content: "我不能在這裡說話!", ephemeral: true});
@@ -520,14 +520,6 @@ client.on('messageCreate', async msg =>{
                             const message = await msg.channel.messages.fetch(text[1]);
                             console.log(message);
                         }
-                        break;
-
-                    case 'test':
-                        abyss.main(msg);
-                        break;
-
-                    case 't2':
-                        client.user.setAFK();
                         break;
                     
                     case 'lo':

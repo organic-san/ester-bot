@@ -9,6 +9,8 @@ module.exports = {
      * @returns 升下一等需要的經驗值
      */
     levelUpCalc: (level) => (2 * level * level + 13 * level + 12),
+    avgLevelPoint: 12.5, //s
+    messageCooldown: 45, //s
 
     /**
      * 隨機排序陣列

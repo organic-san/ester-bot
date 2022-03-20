@@ -76,8 +76,8 @@ module.exports = {
                     levelsList.push(item.exp);
                     if(item.id === user.id){
                         a++;
-                        let nextlevel = Math.ceil((textCommand.levelUpCalc(item.levels)) * avgLevelPoint);
-                        let backlevel = Math.min(Math.ceil((textCommand.levelUpCalc(item.levels - 1)) * avgLevelPoint), item.exp);
+                        let nextlevel = Math.ceil((textCommand.levelUpCalc(item.levels)) * textCommand.avgLevelPoint);
+                        let backlevel = Math.min(Math.ceil((textCommand.levelUpCalc(item.levels - 1)) * textCommand.avgLevelPoint), item.exp);
                         if(item.levels === 0){backlevel = 0};
                         exps = item.exp;
                         lvls = item.levels;

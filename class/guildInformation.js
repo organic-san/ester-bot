@@ -6,6 +6,8 @@ const Discord = require('discord.js');
  * @returns 升下一等需要的經驗值
  */
 function levelUpCalc(level) {return (2 * level * level + 13 * level + 12)}
+const avgLevelPoint = 12.5 //s
+const messageCooldown = 45 //s
 
 class GuildInformationArray {
 
