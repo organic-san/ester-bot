@@ -2,10 +2,10 @@ const Discord = require('discord.js');
  
 const prefix = require('./JSONHome/prefix.json');
 
-const textCommand = require('./JSmodule/textModule');
-const musicbase = require('./JSmodule/musicListClass');
-const guild = require('./JSmodule/guildInformationClass');
-const abyss = require('./JSmodule/abyssModule');
+const textCommand = require('./class/textModule');
+const musicbase = require('./class/musicList');
+const guild = require('./class/guildInformation');
+const abyss = require('./class/abyss');
 
 const fs = require('fs');
 require('dotenv').config();
@@ -37,6 +37,12 @@ for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);
 	client.commands.set(command.data.name, command);
 }
+
+let reda = fs.readFileSync(`./data/record.json`);
+/**
+ * @type {dataRecord}
+ */
+let record = JSON.parse(reda);
 
 let isready = false;
 
@@ -79,6 +85,10 @@ client.on('ready', () =>{
             if (err)
                 console.log(err);
         });
+        fs.writeFile("./data/record.json", JSON.stringify(record, null, '\t'), function (err){
+            if (err)
+                console.log(err);
+        });
         guildInformation.guilds.forEach(async (element) => {
             const filename = `./data/guildInfo/${element.id}.json`;
             fs.writeFile(filename, JSON.stringify(element, null, '\t'),async function (err) {
@@ -108,6 +118,8 @@ client.on('interactionCreate', async interaction => {
         );
     }
     guildInformation.updateGuild(interaction.guild);
+    record.interactionCount+=1;
+    record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
 
     if (!interaction.isCommand()) return;
     if(!interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
@@ -196,7 +208,7 @@ client.on('messageCreate', async msg =>{
             }
         }
         guildInformation.updateGuild(msg.guild);
-
+        record.messageCount+=1;
         if(!msg.member.user) return; //幫bot值多拉一層，判斷上層物件是否存在
         if(msg.member.user.bot) return; //訊息內bot值為正 = 此消息為bot發送
     }catch (err){
@@ -555,6 +567,10 @@ client.on('messageCreate', async msg =>{
                             if (err)
                                 console.log(err);
                         });
+                        fs.writeFile("./data/record.json", JSON.stringify(record, null, '\t'), function (err){
+                            if (err)
+                                console.log(err);
+                        });
                         guildInformation.guilds.forEach(async (element) => {
                             const filename = `./data/guildInfo/${element.id}.json`;
                             fs.writeFile(filename, JSON.stringify(element, null, '\t'), (err) => {
@@ -605,6 +621,7 @@ client.on('messageCreate', async msg =>{
 //#region 進入、送別觸發事件guildMemberAdd、guildMemberRemove
 client.on('guildMemberAdd', member => {
     if(!isready) return;
+    record.user.join++;
 
     const element = guildInformation.getGuild(member.guild.id);
     if(!element) return;
@@ -638,6 +655,7 @@ client.on('guildMemberAdd', member => {
 
 client.on('guildMemberRemove', member => {
     if(!isready) return;
+    record.user.leave++;
 
     const element = guildInformation.getGuild(member.guild.id);
     if(!element) return;
@@ -665,6 +683,7 @@ client.on('guildMemberRemove', member => {
 //#region 機器人被加入、踢出觸發事件guildCreate、guildDelete
 client.on("guildCreate", guild2 => {
     if(!isready) return;
+    record.bot.join++;
                 
     const filename = process.env.ACID_FILEROUTE;
     if(fs.readdirSync(filename).includes(guild2.id + ".json")) {
@@ -715,6 +734,7 @@ client.on("guildCreate", guild2 => {
 
 client.on("guildDelete", guild => {
     if(!isready) return;
+    record.bot.leave++;
 
     console.log(`${client.user.tag} 從 ${guild.name} 中被踢出了`);
     client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`${client.user.tag} 從 **${guild.name}** 中被踢出了`));
