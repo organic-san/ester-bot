@@ -21,15 +21,15 @@ module.exports = {
                     .setDescription('要查看的對象')
                     .setRequired(true)
             )),
-    tag: "guildInfo",
+    tag: "guildInfoRecord",
 
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
      * @param {guild.GuildInformation} guildInformation 
-     * @param
+     * @param {dataRecord} record
      */
-	async execute(interaction, guildInformation) {
+	async execute(interaction, guildInformation, record) {
         if (interaction.options.getSubcommand() === 'bot') {
             const time = interaction.client.user.createdAt;
             let char = "";
@@ -53,11 +53,6 @@ module.exports = {
                 case 5: week = "五"; break;
                 case 6: week = "六"; break;
             }
-            const uptime = interaction.client.uptime;
-            const uptimeday = Math.floor(uptime / (86400 * 1000));
-            const uptimehour = Math.floor((uptime % (86400 * 1000)) / (3600 * 1000));
-            const uptimemin = Math.floor((uptime % (3600 * 1000)) / (60 * 1000));
-            const uptimesec = Math.floor((uptime % (60 * 1000)) / (1 * 1000));
             const embed3 = new Discord.MessageEmbed()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(`${interaction.client.user.username} 的資訊`)
@@ -65,9 +60,14 @@ module.exports = {
                 .addField('製作者', `organic_san_2#0500`)
                 .addField('建立日期', `${time.getFullYear()} ${time.getMonth()+1}/${time.getDate()} (${char})`, true)
                 .addField('加入伺服器時間', `${timejoin.getFullYear()} ${timejoin.getMonth()+1}/${timejoin.getDate()} (${week})`, true)
-                .addField('總使用者數量', `${interaction.client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
-                .addField('參與伺服器數量', `${interaction.client.guilds.cache.size}`, true)
+                .addField('用戶ID', interaction.client.user.id, true)
+                .addField('總使用者數', `${interaction.client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
+                .addField('參與伺服器數量', interaction.client.guilds.cache.size.toString(), true)
                 .addField('延遲', `${interaction.client.ws.ping}ms`, true)
+                .addField('統計', 
+                    `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
+                    `總接收訊息數 - ${record.messageCount} 條\n` +
+                    `累計加入伺服器數 - ${record.bot.join} 個\n`)
                 .setThumbnail(interaction.client.user.displayAvatarURL({dynamic: true}))
                 .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({dynamic: true})}`})
                 .setTimestamp()
