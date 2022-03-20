@@ -108,13 +108,27 @@ client.on('interactionCreate', async interaction => {
     if(!interaction.guild && interaction.isCommand()) return interaction.reply("無法在私訊中使用斜線指令!");
 
     //伺服器資料建立&更新
-    if(!guildInformation.has(interaction.guild.id)){
-        const thisGI = new guild.GuildInformation(interaction.guild, []);
-        guildInformation.addGuild(thisGI);
-        console.log(`${client.user.tag} 加入了 ${interaction.guild.name} (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`);
-        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
-            channel.send(`${client.user.tag} 加入了 **${interaction.guild.name}** (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`)
-        );
+    if(!guildInformation.has(msg.guild.id)){
+        const filename = process.env.ACID_FILEROUTE;
+        if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
+            console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`);
+            client.channels.fetch(process.env.CHECK_CH_ID)
+                .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`));
+            fs.readFile(filename + "/" + msg.guild.id + ".json", async (err, text) => {
+                if (err)
+                    throw err;
+                const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
+                guildInformation.addGuild(
+                    await guild.GuildInformation.toGuildInformation(JSON.parse(text), targetGuild)
+                );
+            });
+        } else {
+            const thisGI = new guild.GuildInformation(msg.guild, []);
+            guildInformation.addGuild(thisGI);
+            console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/interaction)`);
+            client.channels.fetch(process.env.CHECK_CH_ID)
+                .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/interaction)`));
+        }
     }
     guildInformation.updateGuild(interaction.guild);
 
@@ -160,6 +174,7 @@ client.on('interactionCreate', async interaction => {
         if(command.tag === "interaction") await command.execute(interaction);
 		if(command.tag === "guildInfo") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id));
 		if(command.tag === "musicList") await command.execute(interaction, musicList.get(interaction.guild.id));
+        if(command.tag === "guildInfoRecord") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id), record);
 
 	} catch (error) {
         //console.log("err1")
@@ -403,24 +418,8 @@ client.on('messageCreate', async msg =>{
         }
         //#endregion
 
-        //#region 特殊文字判定回應 笑死 快樂光線
+        //#region 特殊文字判定回應 快樂光線
         switch(msg.content){
-            case '笑死':
-                if(msg.guild.id === '881520130926981172') return;
-                await msg.channel.sendTyping();
-                let message = '';
-                for(step = 0; step < (Math.floor(Math.random()*3 + 2)); step++){
-                    message = message + 'w';
-                }
-                message = message + '草';
-                for(step = 0; step < (Math.floor(Math.random()*4 + 3)); step++){
-                    message = message + 'w';
-                }
-                if(Math.floor(Math.random()*7) === 0){message = '( ﾟ∀ﾟ)ｱﾊﾊ八八ﾉヽﾉヽﾉヽﾉ ＼ / ＼/ ＼';}
-                if(Math.floor(Math.random()*25) === 0){message = '草';}
-                if(Math.floor(Math.random()*50) === 0){message = '你...找到了...隱藏的文字！(然而沒有意義)';}
-                msg.channel.send(message);
-                break;
                 
             case '快樂光線':
             case 'happybeam':
@@ -555,24 +554,7 @@ client.on('messageCreate', async msg =>{
                     case "save":
                     case "s":
                         //#region 更新伺服器資料
-                        fs.writeFile("./data/guildInfo/guildlist.json", JSON.stringify(guildInformation.guildList, null, '\t'), (err) => {
-                            if (err)
-                                console.log(err);
-                        });
-                        fs.writeFile("./data/record.json", JSON.stringify(record, null, '\t'), function (err){
-                            if (err)
-                                console.log(err);
-                        });
-                        guildInformation.guilds.forEach(async (element) => {
-                            const filename = `./data/guildInfo/${element.id}.json`;
-                            fs.writeFile(filename, JSON.stringify(element, null, '\t'), (err) => {
-                                if (err)
-                                    return console.log(err);
-                            });
-                        });
-                        time = new Date();
-                        console.log(`Saved in ${time} (手動)`);
-                        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`手動存檔: <t:${Math.floor(Date.now() / 1000)}:F>`));
+                        saveData("手動");
                         break;
                         //#endregion
                     
@@ -609,6 +591,27 @@ client.on('messageCreate', async msg =>{
     }
 });
 //#endregion
+
+function saveData(reason) {
+    fs.writeFile("./data/guildInfo/guildlist.json", JSON.stringify(guildInformation.guildList, null, '\t'), (err) => {
+        if (err)
+            console.log(err);
+    });
+    fs.writeFile("./data/record.json", JSON.stringify(record, null, '\t'), function (err){
+        if (err)
+            console.log(err);
+    });
+    guildInformation.guilds.forEach(async (element) => {
+        const filename = `./data/guildInfo/${element.id}.json`;
+        fs.writeFile(filename, JSON.stringify(element, null, '\t'), (err) => {
+            if (err)
+                return console.log(err);
+        });
+    });
+    time = new Date();
+    console.log(`Saved in ${time} (${reason})`);
+    client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`${reason}存檔: <t:${Math.floor(Date.now() / 1000)}:F>`));
+}
 
 //#region 進入、送別觸發事件guildMemberAdd、guildMemberRemove
 client.on('guildMemberAdd', member => {
@@ -691,6 +694,7 @@ client.on("guildCreate", guild2 => {
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
             channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發，原有資料已轉移)`)
         );
+        saveData("自動(新增伺服器: 資料轉移成功)");
         if(guild2.systemChannel){
             const l = client.user.tag;
             guild2.systemChannel.send(`歡迎使用${l}！使用斜線指令(/help)來查詢我的功能！`).catch(err => console.log(err))
