@@ -108,13 +108,23 @@ client.on('interactionCreate', async interaction => {
     if(!interaction.guild && interaction.isCommand()) return interaction.reply("無法在私訊中使用斜線指令!");
 
     //伺服器資料建立&更新
-    if(!guildInformation.has(msg.guild.id)){
+    if(!guildInformation.has(interaction.guild.id)){
+        const thisGI = new guild.GuildInformation(interaction.guild, []);
+        guildInformation.addGuild(thisGI);
+        console.log(`${client.user.tag} 加入了 ${interaction.guild.name} (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`);
+        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
+            channel.send(`${client.user.tag} 加入了 **${interaction.guild.name}** (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`)
+        );
+    }
+    if(!guildInformation.has(interaction.guild.id)){
         const filename = process.env.ACID_FILEROUTE;
-        if(fs.readdirSync(filename).includes(msg.guild.id + ".json")) {
-            console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`);
+        if(fs.readdirSync(filename).includes(interaction.guild.id + ".json")) {
+            console.log(`${client.user.tag} 加入了 ${interaction.guild.name} (${interaction.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`);
             client.channels.fetch(process.env.CHECK_CH_ID)
-                .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`));
-            fs.readFile(filename + "/" + msg.guild.id + ".json", async (err, text) => {
+                .then(channel => channel.send(
+                    `${client.user.tag} 加入了 **${interaction.guild.name}** (${interaction.guild.id}) (缺少伺服器資料觸發/interaction，原有資料已轉移)`)
+                );
+            fs.readFile(filename + "/" + interaction.guild.id + ".json", async (err, text) => {
                 if (err)
                     throw err;
                 const targetGuild = await client.guilds.fetch(JSON.parse(text).id);
@@ -123,11 +133,11 @@ client.on('interactionCreate', async interaction => {
                 );
             });
         } else {
-            const thisGI = new guild.GuildInformation(msg.guild, []);
+            const thisGI = new guild.GuildInformation(interaction.guild, []);
             guildInformation.addGuild(thisGI);
-            console.log(`${client.user.tag} 加入了 ${msg.guild.name} (${msg.guild.id}) (缺少伺服器資料觸發/interaction)`);
+            console.log(`${client.user.tag} 加入了 ${interaction.guild.name} (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`);
             client.channels.fetch(process.env.CHECK_CH_ID)
-                .then(channel => channel.send(`${client.user.tag} 加入了 **${msg.guild.name}** (${msg.guild.id}) (缺少伺服器資料觸發/interaction)`));
+                .then(channel => channel.send(`${client.user.tag} 加入了 **${interaction.guild.name}** (${interaction.guild.id}) (缺少伺服器資料觸發/interaction)`));
         }
     }
     guildInformation.updateGuild(interaction.guild);
