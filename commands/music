@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const music = require('../JSmodule/musicListClass');
+const music = require('../class/musicListClass');
 const ytdl = require('ytdl-core');
 const ytpl = require('ytpl');
 const search = require('youtube-search');

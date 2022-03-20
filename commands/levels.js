@@ -1,7 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const guild = require('../JSmodule/guildInformationClass');
-const textCommand = require('../JSmodule/textModule');
+const guild = require('../class/guildInformation');
+const textCommand = require('../class/textModule');
 
 module.exports = {
 	data: new SlashCommandBuilder()

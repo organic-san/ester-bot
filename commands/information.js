@@ -1,6 +1,6 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const guild = require('../JSmodule/guildInformationClass');
+const guild = require('../class/guildInformation');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -27,6 +27,7 @@ module.exports = {
      * 
      * @param {Discord.CommandInteraction} interaction 
      * @param {guild.GuildInformation} guildInformation 
+     * @param
      */
 	async execute(interaction, guildInformation) {
         if (interaction.options.getSubcommand() === 'bot') {
