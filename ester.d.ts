@@ -30,3 +30,6 @@ interface  dataRecord {
         leave: number;
     }
 }
+
+declare const avgLevelPoint: 12.5;
+declare const messageCooldown: 45;

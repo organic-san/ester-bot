@@ -1,6 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const textCommand = require('../class/textModule');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -44,8 +43,8 @@ module.exports = {
         if (interaction.options.getSubcommand() === 'birthday') {
 
             const user = interaction.options.getUser('user');
-            if(!user) interaction.reply(textCommand.time(interaction.user.createdAt, `這是你創立帳號的時間`));
-		    else interaction.reply(textCommand.time(user.createdAt, `這是 **${user.tag}** 創立帳號的時間`));
+            if(!user) interaction.reply(time(interaction.user.createdAt, `這是你創立帳號的時間`));
+		    else interaction.reply(time(user.createdAt, `這是 **${user.tag}** 創立帳號的時間`));
 
 		} else if (interaction.options.getSubcommand() === 'avatar') {
 
@@ -76,3 +75,20 @@ module.exports = {
 		}
 	},
 };
+
+function time(time, preset){
+    //#region 現在時刻
+    let char = "";
+    switch(time.getDay()){
+        case 0: char = "日"; break;
+        case 1: char = "一"; break;
+        case 2: char = "二"; break;
+        case 3: char = "三"; break;
+        case 4: char = "四"; break;
+        case 5: char = "五"; break;
+        case 6: char = "六"; break;
+    }
+    return `${preset}：${time.getFullYear()}年 ${time.getMonth()+1}月 ${time.getDate()
+    }日 星期${char} ${time.getHours()}點 ${time.getMinutes()}分 ${time.getSeconds()
+    }秒 (UTC${time.getTimezoneOffset()/60 <= 0 ? "+" : "-" }${Math.abs(time.getTimezoneOffset()/60)})`;
+}
