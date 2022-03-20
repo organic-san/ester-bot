@@ -65,7 +65,7 @@ module.exports = {
                 .addField('製作者', `organic_san_2#0500`)
                 .addField('建立日期', `${time.getFullYear()} ${time.getMonth()+1}/${time.getDate()} (${char})`, true)
                 .addField('加入伺服器時間', `${timejoin.getFullYear()} ${timejoin.getMonth()+1}/${timejoin.getDate()} (${week})`, true)
-                .addField('持續運作時間', `${uptimeday}d ${uptimehour}h ${uptimemin}m ${uptimesec}s`, true)
+                .addField('總使用者數量', `${interaction.client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
                 .addField('參與伺服器數量', `${interaction.client.guilds.cache.size}`, true)
                 .addField('延遲', `${interaction.client.ws.ping}ms`, true)
                 .setThumbnail(interaction.client.user.displayAvatarURL({dynamic: true}))
