@@ -424,6 +424,7 @@ client.on('messageCreate', async msg =>{
                 await msg.channel.sendTyping();
                 msg.channel.send(guildInformation.getGuild(msg.guild.id).getReaction(isReaction));
                 console.log("isCommand: false: isReaction");
+                record.autoReplyCount+=1;
             } else console.log("isCommand: false");
         }
         //#endregion
@@ -449,6 +450,7 @@ client.on('messageCreate', async msg =>{
                         text = `{\\\\__/}\n(  ≧▽≦)\n/ v      \\ ☞  ==============)`
                     else text = '{\\\\__/}\n(⊙ω⊙)\n/ >▄︻̷̿┻̿═━一   =========))';}
                 msg.reply(text);
+                record.happyBeamCount+=1;
                 break;
         }
         //#endregion
@@ -704,7 +706,6 @@ client.on("guildCreate", guild2 => {
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
             channel.send(`${client.user.tag} 加入了 **${guild2.name}** (${guild2.id}) (新增事件觸發，原有資料已轉移)`)
         );
-        saveData("自動(新增伺服器: 資料轉移成功)");
         if(guild2.systemChannel){
             const l = client.user.tag;
             guild2.systemChannel.send(`歡迎使用${l}！使用斜線指令(/help)來查詢我的功能！`).catch(err => console.log(err))

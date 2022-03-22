@@ -1,6 +1,8 @@
 interface  dataRecord {
     messageCount: number;
     interactionCount: number;
+    happyBeamCount: number;
+    autoReplyCount: number;
     interaction: {
         account: number;
         auto: number;
