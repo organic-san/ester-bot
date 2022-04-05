@@ -479,7 +479,7 @@ class Yacht {
             announcement = "選擇了**大順**，並獲得 " + this.#bigStraight + "分。";
         } else if(yaku === "yacht") {
             if(diceCount.includes(5)) {
-                this.yacht = 50;
+                this.#yacht = 50;
             } else {
                 this.#yacht = 0;
             }
