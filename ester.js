@@ -186,7 +186,7 @@ client.on('interactionCreate', async interaction => {
 		if(command.tag === "guildInfo") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id));
 		if(command.tag === "musicList") await command.execute(interaction, musicList.get(interaction.guild.id));
         if(command.tag === "guildInfoRecord") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id), record);
-
+        if(command.tag === "record") await command.execute(interaction, record);
 	} catch (error) {
         //console.log("err1")
 		console.error(error);

@@ -18,48 +18,73 @@ module.exports = {
                 .setDescription('要一起遊玩的對象')
                 .setRequired(true)
         ),
-    tag: "interaction",
+    tag: "record",
 
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
+     * @param {dataRecord} record
      */
-	async execute(interaction) {
+	async execute(interaction, record) {
         const p2user = interaction.options.getUser('user');
         const p1user = interaction.user;
         if(p2user.bot) return interaction.reply("無法向機器人發送遊玩邀請。")
-        if(p2user.id === p1user.id) return interaction.reply("無法向機器人發送遊玩邀請。")
-        /**
-         * @type {Discord.Message<boolean>}
-         */
-        let intermessage = await interaction.reply({content: "已向對方發送遊玩邀請，請稍後回復...", fetchReply: true});
+        if(p2user.id === p1user.id) return interaction.reply("無法向自己發送遊玩邀請。")
+        const help = 
+            "快艇骰子 - 遊戲說明: \n" + 
+            "這是一個用5顆骰子骰出各種組合，比較總和點數大小的遊戲。\n" + 
+            "骰骰子之後，依據當下的情況，填入適合的組合中，每一輪都要填一個組合。\n" +
+            "如果沒有合適的組合，也可以選擇重新骰骰子，至多兩次。\n" +
+            "直接點選骰子可以鎖定那顆骰子要不要重骰。\n" +
+            "直到全部的組合都填入完遊戲就結束，此時總和分最高的就是贏家。\n\n" +
+            "可以填入的組合有這些:\n" +
+            "一點~六點: 各自的總和。如果這些組和加起來超過63分，將額外獲得35分。\n" +
+            "機會: 所有點數加總。\n" +
+            "葫蘆: 當有2個跟3個一樣的點數時，分數會是所有點數合計。\n" +
+            "鐵支: 如果有4個相同的點數，分數會是所有點數合計。\n" +
+            "小順: 4個連載一起的點數(例如1、2、3、4)，會獲得15分。\n" +
+            "大順: 5個連載一起的點數(例如1、2、3、4、5)，會獲得30分。\n" +
+            "快艇: 5個相同的點數，將獲得50分。\n" +
+            "組合分數與說明在遊戲過程中也可以查看。";
+            
         const OKbutton = new Discord.MessageActionRow().addComponents([
             new Discord.MessageButton()
                 .setLabel("開始遊戲")
                 .setCustomId('OK')
                 .setStyle('PRIMARY')
             ]);
+        /**
+         * @type {Discord.Message<boolean>}
+         */
+        let intermessage = await interaction.reply({content: help + "\n\n點選下方按鈕，向對方發送邀請。", fetchReply: true, components: [OKbutton]});
+        const filterp1 = (i) => i.user.id === p1user.id && i.customId === 'OK';
+        let playStartButtonp1 = await intermessage.awaitMessageComponent({ filter: filterp1, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        if (!playStartButtonp1) {
+            return interaction.editReply({content: "由於你太久沒有按按鈕，因此取消向對方傳送邀請。", components: []});
+        }
+        playStartButtonp1.update({content: "已向對方發送遊玩邀請，請稍後回復...", components: []});
+        
         let isErr = false;
         /**
          * @type {Discord.Message<boolean>}
          */
         const p2message = await p2user.send({
             content: 
-                `${p1user} 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，對你發出快艇骰子(/yacht-dice)的遊玩邀請。\n` + 
-                `按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
+                `${p1user} 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，對你發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
+                help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
             components: [OKbutton]
         }).catch(_err => isErr = true);
-        if(isErr) return interaction.editReply("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器。");
+        if(isErr) return interaction.editReply("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器，或者對方關閉私訊功能。");
 
-        const filter = (i) => i.user.id === p2user.id && i.customId === 'OK';
-        let playStartButton = await p2message.awaitMessageComponent({ filter: filter, componentType: 'BUTTON', time: 3 * 60 * 1000 });
-        if (!playStartButton) {
+        const filterp2 = (i) => i.user.id === p2user.id && i.customId === 'OK';
+        let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        if (!playStartButtonp2) {
             interaction.editReply("對方並未對邀請做出回覆，因此取消開始遊戲。")
-            return playStartButton.update(`剛剛 ${p1user} 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`);
+            return playStartButtonp2.update(`剛剛 ${p1user} 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`);
         }
 
-        interaction.editReply("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
-        playStartButton.update({content: "即將開始遊戲...", components: []})
+        await interaction.editReply("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
+        await playStartButtonp2.update({content: "即將開始遊戲...", components: []})
 
         let p1gameBoard = new Yacht(1);
         let p2gameBoard = new Yacht(2);
@@ -67,7 +92,7 @@ module.exports = {
         let turn = 1;
         let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDiceMax);
         const msgPlaying1 = "按下擲骰按鈕開始這回合。";
-        const msgPlaying2 = "點擊骰子可以決定要重骰的骰子: 灰色為保留，綠色為重骰。\n骰出結果後，請選擇一個適合的組合。";
+        const msgPlaying2 = "直接點擊骰子可以決定要不要重新骰那一顆骰子: 灰色為保留，綠色為重骰。\n骰出結果後，請選擇一個適合的組合。";
         const msgWaiting = "正在等待對方執行操作...";
         const timelimit = 3;
         const diceMax = 5;
@@ -93,7 +118,8 @@ module.exports = {
 
         let p1collector = p1message.createMessageComponentCollector({time: timelimit * 60 * 1000 });
         let p2collector = p2message.createMessageComponentCollector({time: 999 * 60 * 1000 });
-            
+        intermessage.edit("正在遊玩遊戲中...");
+
         let diceResult = [0,0,0,0,0];
         let diceReDice = [true, true, true, true, true];
         let reDice = reDiceMax;
@@ -177,7 +203,7 @@ module.exports = {
             } else if(i.customId.startsWith('dice')) {
                 let did = parseInt(i.customId[4]);
                 diceReDice[did] = !diceReDice[did];
-                let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
+                let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
@@ -198,17 +224,23 @@ module.exports = {
                 if(turn > 12) {
                     let gameInfo = `遊戲結束! 最終結果如下:\n\n玩家1: ${p1user}\n玩家2: ${p2user}`;
                     let winner = "";
+                    let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`
                     if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} 獲勝!`
                     else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} 獲勝!`
                     else if(p1gameBoard.pointCalc() === p2gameBoard.pointCalc()) winner = `雙方平手!`
+                    let higher = p1gameBoard.pointCalc() > p2gameBoard.pointCalc() ? p1gameBoard.pointCalc() : p2gameBoard.pointCalc();
+                    if(record.maxiumYachtScore < higher) {
+                        record.maxiumYachtScore = higher;
+                        winner += "\n也刷新了目前的最高紀錄!"
+                    }
                     p2message.edit({
                         content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`,
+                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
                         components: []
                     })
                     p1message.edit({
                         content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`,
+                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
                         components: []
                     })
                     intermessage.edit(`${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`).catch();
@@ -238,14 +270,15 @@ module.exports = {
         p1collector.on('end', (c, r) => {
             if(r !== "messageDelete" && r !== "p2end" && r !== "end"){
                 let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
+                let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
                 p1message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",
+                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n" + msgInfo,
                     components: []
                 });
                 p2message.edit({
                     content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",
+                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
                     components: []
                 });
                 intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
@@ -257,14 +290,15 @@ module.exports = {
         p2collector.on('end', (c, r) => {
             if(r !== "messageDelete" && r !== "p1end" && r !== "end"){
                 let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
+                let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
                 p2message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",
+                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
                     components: []
                 });
                 p1message.edit({
                     content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",
+                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
                     components: []
                 });
                 intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
@@ -272,9 +306,6 @@ module.exports = {
                 p2collector.stop("p2end");
             }
         });
-
-
-
 	},
 };
 
@@ -486,9 +517,9 @@ class Yacht {
         pointText += `\n  機會    `;
         yathtData.forEach(v => pointText += v.choice.toString().padStart(3, " ") + "    ");
         pointText += `\n  葫蘆    `;
-        yathtData.forEach(v => pointText += v.fourKind.toString().padStart(3, " ") + "    ");
-        pointText += `\n  鐵支    `;
         yathtData.forEach(v => pointText += v.fullHouse.toString().padStart(3, " ") + "    ");
+        pointText += `\n  鐵支    `;
+        yathtData.forEach(v => pointText += v.fourKind.toString().padStart(3, " ") + "    ");
         pointText += `\n  小順    `;
         yathtData.forEach(v => pointText += v.smallStraight.toString().padStart(3, " ") + "    ");
         pointText += `\n  大順    `;

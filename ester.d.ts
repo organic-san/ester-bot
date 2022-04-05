@@ -3,6 +3,7 @@ interface  dataRecord {
     interactionCount: number;
     happyBeamCount: number;
     autoReplyCount: number;
+    maxiumYachtScore: number;
     interaction: {
         account: number;
         auto: number;
