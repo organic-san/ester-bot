@@ -67,7 +67,8 @@ module.exports = {
                 .addField('統計', 
                     `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
                     `總接收訊息數 - ${record.messageCount} 條\n` +
-                    `累計加入伺服器數 - ${record.bot.join} 個\n`)
+                    `累計加入伺服器數 - ${record.bot.join} 個\n` +
+                    `遊戲/yacht-dice累計最高分 - ${record.maxiumYachtScore} 分`)
                 .setThumbnail(interaction.client.user.displayAvatarURL({dynamic: true}))
                 .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({dynamic: true})}`})
                 .setTimestamp()

@@ -132,14 +132,14 @@ module.exports = {
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
+                        `\n${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
                 });
                 await i.deferUpdate();
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
+                        `\n${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
             } else if(i.customId.startsWith('dice')) {
@@ -149,14 +149,14 @@ module.exports = {
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
+                        `\n${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
                 });
                 await i.deferUpdate();
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
+                        `\n${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
             } else if(i.customId === "yaku") {
@@ -190,14 +190,14 @@ module.exports = {
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
+                        `\n${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
                 });
                 await i.deferUpdate();
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
+                        `\n${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
             } else if(i.customId.startsWith('dice')) {
@@ -207,14 +207,14 @@ module.exports = {
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
+                        `\n${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
                 });
                 await i.deferUpdate();
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
+                        `\n${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
             } else if(i.customId === "yaku") {
