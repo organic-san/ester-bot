@@ -106,6 +106,7 @@ client.on('interactionCreate', async interaction => {
     if(!isready) return;
 
     if(!interaction.guild && interaction.isCommand()) return interaction.reply("無法在私訊中使用斜線指令!");
+    if(!interaction.guild) return;
 
     //伺服器資料建立&更新
     if(!guildInformation.has(interaction.guild.id)){
