@@ -37,7 +37,7 @@ module.exports = {
             const text = interaction.options.getString('text');
             let splitText = text.split(/\s+/g);
             
-            splitText.forEach((content, index) => {
+            splitText.forEach((_content, index) => {
                 const rnd10 = Math.floor(Math.random() * 10);
                 if(Math.floor(Math.random() * 3) < 1) 
                     splitText[index] = splitText[index].padEnd(splitText[index].length + Math.floor(Math.random() * 6), 'w');

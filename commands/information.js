@@ -57,7 +57,7 @@ module.exports = {
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(`${interaction.client.user.username} 的資訊`)
                 .setDescription(`關於這個機器人的資訊：`)
-                .addField('製作者', `organic_san_2#0500`)
+                .addField('製作者', (await interaction.client.users.fetch(process.env.OWNER1ID)).tag)
                 .addField('建立日期', `${time.getFullYear()} ${time.getMonth()+1}/${time.getDate()} (${char})`, true)
                 .addField('加入伺服器時間', `${timejoin.getFullYear()} ${timejoin.getMonth()+1}/${timejoin.getDate()} (${week})`, true)
                 .addField('用戶ID', interaction.client.user.id, true)
