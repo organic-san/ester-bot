@@ -117,11 +117,6 @@ module.exports = {
                 `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msgWaiting}`,
             components: []
         })
-        intermessage.edit({
-            content: 
-                `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msginter}`,
-            components: []
-        }).catch();
 
         let p1collector = p1message.createMessageComponentCollector({time: timelimit * 60 * 1000 });
         let p2collector = p2message.createMessageComponentCollector({time: 999 * 60 * 1000 });
@@ -285,7 +280,10 @@ module.exports = {
                             `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
                         components: []
                     })
-                    intermessage.edit(`${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`).catch();
+                    intermessage.edit({
+                        content: `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`,
+                        components: []
+                    }).catch();
                     p2collector.stop("end");
                     p1collector.stop("end");
                 } else {
@@ -491,7 +489,7 @@ class Yacht {
             this.#choice = diceResult[0] + diceResult[1] + diceResult[2] + diceResult[3] + diceResult[4];
             announcement = "選擇了**機會**，並獲得 " + this.#choice + "分。";
         } else if(yaku === "fullHouse") {
-            if(diceCount.includes(3) && diceCount.includes(2)){
+            if((diceCount.includes(3) && diceCount.includes(2)) || diceCount.includes(5)){
                 this.#fullHouse = diceResult[0] + diceResult[1] + diceResult[2] + diceResult[3] + diceResult[4];
             } else {
                 this.#fullHouse = 0;
@@ -672,7 +670,7 @@ function selectMenu(dr, yz) {
         `五點: ${drs[4] * 5}`, 
         `六點: ${drs[5] * 6}`,
         `機會: ${dr[0] + dr[1] + dr[2] + dr[3] + dr[4]}`,
-        `葫蘆: ${(drs.includes(2) && drs.includes(3)) ? (dr[0] + dr[1] + dr[2] + dr[3] + dr[4]) : 0}`,
+        `葫蘆: ${((drs.includes(2) && drs.includes(3)) || drs.includes(5)) ? (dr[0] + dr[1] + dr[2] + dr[3] + dr[4]) : 0}`,
         `鐵支: ${(drs.includes(5) || drs.includes(4)) ? (dr[0] + dr[1] + dr[2] + dr[3] + dr[4]) : 0}`,
         `小順: ${
             ((drs[0] >= 1 && drs[1] >= 1 && drs[2] >= 1 && drs[3] >= 1)  ||
@@ -733,7 +731,7 @@ function yakuCheck(dr, yacht) {
     if(drs.includes(5) && yacht.yacht === "--") {
         return "\`\`\`\n__人人人人人人人__\n＞   🎉快艇!   ＜\n￣Y^Y^Y^Y^Y^Y^Y￣\`\`\`"
     }
-    if(drs.includes(3) && drs.includes(2) && yacht.fullHouse === "--") {
+    if(((drs.includes(3) && drs.includes(2)) || drs.includes(5)) && yacht.fullHouse === "--") {
         return "\`\`\`\n__人人人人人__\n＞   葫蘆!  ＜\n￣Y^Y^Y^Y^Y￣\`\`\`"
     }
     if((drs.includes(4) || drs.includes(5)) && yacht.fourKind === "--") {
