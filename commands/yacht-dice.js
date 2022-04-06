@@ -70,7 +70,8 @@ module.exports = {
          */
         const p2message = await p2user.send({
             content: 
-                `${p1user} 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，對你發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
+                `${p1user} (${p1user.tag}) 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，` + 
+                `對你發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
                 help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
             components: [OKbutton]
         }).catch(_err => isErr = true);
@@ -94,6 +95,7 @@ module.exports = {
         const msgPlaying1 = "按下擲骰按鈕開始這回合。";
         const msgPlaying2 = "直接點擊骰子可以決定要不要重新骰那一顆骰子: 灰色為保留，綠色為重骰。\n骰出結果後，請選擇一個適合的組合。";
         const msgWaiting = "正在等待對方執行操作...";
+        const msginter = "遊戲正在進行中...";
         const timelimit = 3;
         const diceMax = 5;
         let announcement = "";
@@ -115,10 +117,14 @@ module.exports = {
                 `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msgWaiting}`,
             components: []
         })
+        intermessage.edit({
+            content: 
+                `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msginter}`,
+            components: []
+        }).catch();
 
         let p1collector = p1message.createMessageComponentCollector({time: timelimit * 60 * 1000 });
         let p2collector = p2message.createMessageComponentCollector({time: 999 * 60 * 1000 });
-        intermessage.edit("正在遊玩遊戲中...");
 
         let diceResult = [0,0,0,0,0];
         let diceReDice = [true, true, true, true, true];
@@ -142,6 +148,12 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
+                intermessage.edit({
+                    content: 
+                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
+                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                }).catch();
             } else if(i.customId.startsWith('dice')) {
                 let did = parseInt(i.customId[4]);
                 diceReDice[did] = !diceReDice[did];
@@ -159,6 +171,12 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
+                intermessage.edit({
+                    content: 
+                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
+                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                }).catch();
             } else if(i.customId === "yaku") {
                 let yaku = i.values[0];
                 reDice = reDiceMax;
@@ -178,6 +196,12 @@ module.exports = {
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
                     components: [diceButton(3)]
                 })
+                intermessage.edit({
+                    content: 
+                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, p1gameBoard)}\n玩家1${announcement}\n${msginter}`,
+                    components: []
+                }).catch();
             }
         });
 
@@ -200,6 +224,12 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
+                intermessage.edit({
+                    content: 
+                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
+                        components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                }).catch();
             } else if(i.customId.startsWith('dice')) {
                 let did = parseInt(i.customId[4]);
                 diceReDice[did] = !diceReDice[did];
@@ -217,6 +247,12 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
+                intermessage.edit({
+                    content: 
+                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
+                        components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                }).catch();
             } else if(i.customId === "yaku") {
                 let yaku = i.values[0];
                 turn ++;
@@ -225,13 +261,19 @@ module.exports = {
                     let gameInfo = `遊戲結束! 最終結果如下:\n\n玩家1: ${p1user}\n玩家2: ${p2user}`;
                     let winner = "";
                     let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`
+                    let week = Math.floor( Date.now() / (1000 * 60 * 60 * 24 * 7) );
                     if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} 獲勝!`
                     else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} 獲勝!`
                     else if(p1gameBoard.pointCalc() === p2gameBoard.pointCalc()) winner = `雙方平手!`
                     let higher = p1gameBoard.pointCalc() > p2gameBoard.pointCalc() ? p1gameBoard.pointCalc() : p2gameBoard.pointCalc();
                     if(record.maxiumYachtScore < higher) {
                         record.maxiumYachtScore = higher;
-                        winner += "\n也刷新了目前的最高紀錄!"
+                        winner += "\n也更新了目前的最高紀錄!"
+                    }
+                    if(record.weeklyYachtScore < higher || record.weeklyYachtScoreWeek !== week) {
+                        record.weeklyYachtScore = higher;
+                        record.weeklyYachtScoreWeek = week;
+                        winner += "\n也更新了本周的最高紀錄!"
                     }
                     p2message.edit({
                         content: 
@@ -263,6 +305,12 @@ module.exports = {
                             `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
                         components: [diceButton(3)]
                     })
+                    intermessage.edit({
+                        content: 
+                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
+                            `${yakuCheck(diceResult, p1gameBoard)}\n玩家2${announcement}\n${msginter}`,
+                            components: []
+                    }).catch();
                 }
             }
         });
@@ -273,16 +321,16 @@ module.exports = {
                 let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
                 p1message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n" + msgInfo,
+                        "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n" + msgInfo,
                     components: []
                 });
                 p2message.edit({
                     content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
+                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
                     components: []
                 });
                 intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",).catch();
+                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
                 p2collector.stop("p1end");
             }
         });
@@ -293,16 +341,16 @@ module.exports = {
                 let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
                 p2message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
+                        "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
                     components: []
                 });
                 p1message.edit({
                     content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```\n"  + msgInfo,
+                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
                     components: []
                 });
                 intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
-                    "```" + Yacht.textData(p1gameBoard, p2gameBoard) + "```",).catch();
+                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
                 p2collector.stop("p2end");
             }
         });
@@ -545,7 +593,8 @@ class Yacht {
  * @returns 
  */
 function GameInfo(p1user, p2user, nowplayer, turn, reDice) {
-    return `遊戲: 快艇骰子\n玩家1: ${p1user}\n玩家2: ${p2user}\n回合: 第 ${turn} / 12 回合\n目前操作玩家: ${nowplayer}\n剩餘骰骰子次數: ${reDice}`;
+    return `遊戲: 快艇骰子\n玩家1: ${p1user} (${p1user.tag})\n玩家2: ${p2user} (${p2user.tag})\n` + 
+        `回合: 第 ${turn} / 12 回合\n目前操作玩家: ${nowplayer}\n剩餘骰骰子次數: ${reDice}`;
 }
 
 function diceButton(redice) {

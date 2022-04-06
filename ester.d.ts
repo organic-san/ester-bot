@@ -4,6 +4,8 @@ interface  dataRecord {
     happyBeamCount: number;
     autoReplyCount: number;
     maxiumYachtScore: number;
+    weeklyYachtScore: number;
+    weeklyYachtScoreWeek: number;
     interaction: {
         account: number;
         auto: number;
