@@ -38,7 +38,7 @@ module.exports = {
             "直接點選骰子可以鎖定那顆骰子要不要重骰。\n" +
             "直到全部的組合都填入完遊戲就結束，此時總和分最高的就是贏家。\n\n" +
             "可以填入的組合有這些:\n" +
-            "一點~六點: 各自的總和。如果這些組和加起來超過63分，將額外獲得35分。\n" +
+            "一點~六點: 將該點數的所有骰子數字加總。如果這些組和加起來超過63分，將額外獲得35分。\n" +
             "機會: 所有點數加總。\n" +
             "葫蘆: 當有2個跟3個一樣的點數時，分數會是所有點數合計。\n" +
             "鐵支: 如果有4個相同的點數，分數會是所有點數合計。\n" +
@@ -93,7 +93,9 @@ module.exports = {
         let turn = 1;
         let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDiceMax);
         const msgPlaying1 = "按下擲骰按鈕開始這回合。";
-        const msgPlaying2 = "直接點擊骰子可以決定要不要重新骰那一顆骰子: 灰色為保留，綠色為重骰。\n骰出結果後，請選擇一個適合的組合。";
+        const msgPlaying2 = 
+            "點選擲骰按鈕時，將會重新擲出綠色骰子的結果，點選骰子讓它變成灰色可保留那一顆骰子的結果。\n" + 
+            "骰出結果後，請選擇一個適合的組合。";
         const msgWaiting = "正在等待對方執行操作...";
         const msginter = "遊戲正在進行中...";
         const timelimit = 3;
@@ -257,8 +259,8 @@ module.exports = {
                     let winner = "";
                     let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`
                     let week = Math.floor( Date.now() / (1000 * 60 * 60 * 24 * 7) );
-                    if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} 獲勝!`
-                    else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} 獲勝!`
+                    if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} (${p1user.tag}) 獲勝!`
+                    else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} (${p2user.tag}) 獲勝!`
                     else if(p1gameBoard.pointCalc() === p2gameBoard.pointCalc()) winner = `雙方平手!`
                     let higher = p1gameBoard.pointCalc() > p2gameBoard.pointCalc() ? p1gameBoard.pointCalc() : p2gameBoard.pointCalc();
                     if(record.maxiumYachtScore < higher) {
