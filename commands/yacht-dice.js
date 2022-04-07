@@ -81,7 +81,7 @@ module.exports = {
         let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 });
         if (!playStartButtonp2) {
             interaction.editReply("對方並未對邀請做出回覆，因此取消開始遊戲。")
-            return playStartButtonp2.update(`剛剛 ${p1user} 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`);
+            return p2message.edit(`剛剛 ${p1user} 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`);
         }
 
         await interaction.editReply("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
