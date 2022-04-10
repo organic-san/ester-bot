@@ -57,8 +57,13 @@ module.exports = {
          * @type {Discord.Message<boolean>}
          */
         let intermessage = await interaction.reply({content: help + "\n\n點選下方按鈕，向對方發送邀請。", fetchReply: true, components: [OKbutton]});
-        const filterp1 = (i) => i.user.id === p1user.id && i.customId === 'OK';
-        let playStartButtonp1 = await intermessage.awaitMessageComponent({ filter: filterp1, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        const filterp1 = (i) => {
+            if(i.user.id !== p1user.id)
+                i.reply({content: "使用指令/yacht-dice可以遊玩快艇骰子。", ephemeral: true})
+            return i.user.id === p1user.id && i.customId === 'OK'
+        };
+        let playStartButtonp1 = await intermessage.awaitMessageComponent({ filter: filterp1, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+            .catch(() => {});
         if (!playStartButtonp1) {
             return interaction.editReply({content: "由於你太久沒有按按鈕，因此取消向對方傳送邀請。", components: []});
         }
@@ -78,10 +83,11 @@ module.exports = {
         if(isErr) return interaction.editReply("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器，或者對方關閉私訊功能。");
 
         const filterp2 = (i) => i.user.id === p2user.id && i.customId === 'OK';
-        let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+            .catch(() => {});;
         if (!playStartButtonp2) {
             interaction.editReply("對方並未對邀請做出回覆，因此取消開始遊戲。")
-            return p2message.edit(`剛剛 ${p1user} 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`);
+            return p2message.edit({content: `剛剛 ${p1user} (${p1user.tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
         }
 
         await interaction.editReply("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
