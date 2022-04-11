@@ -60,14 +60,16 @@ module.exports = {
         const filterp1 = (i) => {
             if(i.user.id !== p1user.id)
                 i.reply({content: "使用指令/yacht-dice可以遊玩快艇骰子。", ephemeral: true})
+            else 
+                await i.deferUpdate();
             return i.user.id === p1user.id && i.customId === 'OK'
         };
         let playStartButtonp1 = await intermessage.awaitMessageComponent({ filter: filterp1, componentType: 'BUTTON', time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!playStartButtonp1) {
-            return interaction.editReply({content: "由於你太久沒有按按鈕，因此取消向對方傳送邀請。", components: []});
+            return intermessage.edit({content: "由於你太久沒有按按鈕，因此取消向對方傳送邀請。", components: []});
         }
-        playStartButtonp1.update({content: "已向對方發送遊玩邀請，請稍後回復...", components: []});
+        intermessage.edit({content: "已向對方發送遊玩邀請，請稍後回復...", components: []});
         
         let isErr = false;
         /**
@@ -80,17 +82,17 @@ module.exports = {
                 help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
             components: [OKbutton]
         }).catch(_err => isErr = true);
-        if(isErr) return interaction.editReply("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器，或者對方關閉私訊功能。");
+        if(isErr) return intermessage.edit("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器，或者對方關閉私訊功能。");
 
         const filterp2 = (i) => i.user.id === p2user.id && i.customId === 'OK';
         let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 })
             .catch(() => {});;
         if (!playStartButtonp2) {
-            interaction.editReply("對方並未對邀請做出回覆，因此取消開始遊戲。")
+            intermessage.edit("對方並未對邀請做出回覆，因此取消開始遊戲。")
             return p2message.edit({content: `剛剛 ${p1user} (${p1user.tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
         }
 
-        await interaction.editReply("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
+        await intermessage.edit("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
         await playStartButtonp2.update({content: "即將開始遊戲...", components: []})
 
         let p1gameBoard = new Yacht(1);
@@ -118,7 +120,7 @@ module.exports = {
         }).catch(_err => isErr = true);
         if(isErr) {
             p2message.edit(`已取消遊戲，因為我無法傳送訊息給 ${p1user}。`)
-            return interaction.editReply("已取消遊戲，因為我無法傳送訊息給你。");
+            return intermessage.edit("已取消遊戲，因為我無法傳送訊息給你。");
         }
         p2message.edit({
             content: 
@@ -134,6 +136,7 @@ module.exports = {
         let reDice = reDiceMax;
         p1collector.on('collect', async i => {
             p1collector.resetTimer({time: timelimit * 60 * 1000 });
+            await i.deferUpdate();
             if(i.customId === 'Dice') {
                 reDice--;
                 let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
@@ -144,7 +147,6 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
                 });
-                await i.deferUpdate();
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
@@ -167,7 +169,6 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
                 });
-                await i.deferUpdate();
                 p2message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
@@ -210,6 +211,7 @@ module.exports = {
 
         p2collector.on('collect', async i => {
             p2collector.resetTimer({time: timelimit * 60 * 1000 });
+            await i.deferUpdate();
             if(i.customId === 'Dice') {
                 reDice--;
                 let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
@@ -220,7 +222,6 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
                 });
-                await i.deferUpdate();
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
@@ -243,7 +244,6 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
                 });
-                await i.deferUpdate();
                 p1message.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
@@ -272,11 +272,15 @@ module.exports = {
                     if(record.maxiumYachtScore < higher) {
                         record.maxiumYachtScore = higher;
                         winner += "\n也更新了目前的最高紀錄!"
+                    } else if(record.maxiumYachtScore === higher) {
+                        winner += "\n也打平了目前的最高紀錄!"
                     }
                     if(record.weeklyYachtScore < higher || record.weeklyYachtScoreWeek !== week) {
                         record.weeklyYachtScore = higher;
                         record.weeklyYachtScoreWeek = week;
                         winner += "\n也更新了本周的最高紀錄!"
+                    } else if(record.weeklyYachtScore === higher) {
+                        winner += "\n也打平了本周的最高紀錄!"
                     }
                     p2message.edit({
                         content: 
