@@ -14,9 +14,17 @@ module.exports = {
 		.setName('yacht-dice')
         .setDescription('進行一場快艇骰子遊戲')
         .addUserOption(opt => 
-            opt.setName('user')
-                .setDescription('要一起遊玩的對象')
+            opt.setName('player1')
+                .setDescription('要共同遊玩的玩家一號')
                 .setRequired(true)
+        ).addUserOption(opt => 
+            opt.setName('player2')
+                .setDescription('要共同遊玩的玩家二號')
+                .setRequired(false)
+        ).addUserOption(opt => 
+            opt.setName('player3')
+                .setDescription('要共同遊玩的玩家三號')
+                .setRequired(false)
         ),
     tag: "record",
 
@@ -26,10 +34,17 @@ module.exports = {
      * @param {dataRecord} record
      */
 	async execute(interaction, record) {
-        const p2user = interaction.options.getUser('user');
-        const p1user = interaction.user;
-        if(p2user.bot) return interaction.reply("無法向機器人發送遊玩邀請。")
-        if(p2user.id === p1user.id) return interaction.reply("無法向自己發送遊玩邀請。")
+        const userList = [interaction.user];
+        for(let i=1; i<4; i++) {
+            if(interaction.options.getUser(`player${i}`))
+                userList.push(interaction.options.getUser(`player${i}`));
+        }
+
+        for(let i=1; i<userList.length; i++) {
+            if(userList[i].bot) return interaction.reply("請不要在遊玩對象中包含機器人。");
+            if(userList[i].id === userList[0].id) return interaction.reply("請不要在遊玩對象中包含自己。");
+        }
+        
         const help = 
             "快艇骰子 - 遊戲說明: \n" + 
             "這是一個用5顆骰子骰出各種組合，比較總和點數大小的遊戲。\n" + 
@@ -53,46 +68,126 @@ module.exports = {
                 .setCustomId('OK')
                 .setStyle('PRIMARY')
             ]);
+
         /**
-         * @type {Discord.Message<boolean>}
+         * @type {Array<Discord.Message<boolean>>}
          */
-        let intermessage = await interaction.reply({content: help + "\n\n點選下方按鈕，向對方發送邀請。", fetchReply: true, components: [OKbutton]});
-        const filterp1 = async (i) => {
-            if(i.user.id !== p1user.id)
-                i.reply({content: "使用指令/yacht-dice可以遊玩快艇骰子。", ephemeral: true})
-            else 
-                await i.deferUpdate();
-            return i.user.id === p1user.id && i.customId === 'OK'
-        };
-        let playStartButtonp1 = await intermessage.awaitMessageComponent({ filter: filterp1, componentType: 'BUTTON', time: 5 * 60 * 1000 })
-            .catch(() => {});
-        if (!playStartButtonp1) {
-            return intermessage.edit({content: "由於你太久沒有按按鈕，因此取消向對方傳送邀請。", components: []});
-        }
-        intermessage.edit({content: "已向對方發送遊玩邀請，請稍後回復...", components: []});
-        
+        const msgList = [];
         let isErr = false;
+
+        let msgUserList = "";
+        for(let i=1; i<userList.length; i++) msgUserList += `${userList[i]} (${userList[i].tag})\n`;
+
         /**
          * @type {Discord.Message<boolean>}
          */
-        const p2message = await p2user.send({
-            content: 
-                `${p1user} (${p1user.tag}) 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，` + 
-                `對你發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
-                help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
+        let mainMsg = await interaction.reply({
+            content: "已經將說明與開始遊玩發送至你的私訊，請檢查私訊...", 
+            fetchReply: true
+        });
+        //P1私訊發送
+        msgList[0] = await userList[0].send({
+            content: help + "\n\n點選下方按鈕，向以下玩家:\n" + msgUserList + "發送邀請。\n(注: 需要等所有玩家同意才會開始。)", 
+            fetchReply: true, 
             components: [OKbutton]
         }).catch(_err => isErr = true);
-        if(isErr) return intermessage.edit("無法向對方發送遊玩邀請，可能是因為我和對方沒有共同的伺服器，或者對方關閉私訊功能。");
-
-        const filterp2 = (i) => i.user.id === p2user.id && i.customId === 'OK';
-        let playStartButtonp2 = await p2message.awaitMessageComponent({ filter: filterp2, componentType: 'BUTTON', time: 5 * 60 * 1000 })
-            .catch(() => {});;
-        if (!playStartButtonp2) {
-            intermessage.edit("對方並未對邀請做出回覆，因此取消開始遊戲。")
-            return p2message.edit({content: `剛剛 ${p1user} (${p1user.tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
+        //私訊可行性檢查
+        if(isErr) {
+            return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給你。");
+        }
+        //接收按鈕
+        const mMsgfilter = async (i) => {
+            await i.deferUpdate();
+            return i.customId === 'OK'
+        };
+        let p1StartBtn = await msgList[0].awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+            .catch(() => {});
+        if (!p1StartBtn) {
+            return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向其他玩家傳送邀請。", components: []});
         }
 
-        await intermessage.edit("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
+        let agreeList = [true, false, false, false, false, false, false, false, false, false];
+
+        let acceptText = "";
+        userList.forEach((u, v) => {
+            if(agreeList[v]) acceptText += "✅同意邀請 - ";
+            else acceptText += "⌛等待回應 - ";
+            acceptText += `${u} (${u.tag})\n`;
+            
+        });
+        msgList[0].edit({
+            content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n` + 
+                `目前回應情況:\n${acceptText}`, 
+            components: []
+        });
+        
+        for(let i=1; i<userList.length; i++) {
+            msgList[i] = await userList[i].send({
+                content: 
+                    `${userList[0]} (${userList[0].tag}) 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，` + 
+                    `向這些人們:\n${msgUserList}發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
+                    help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
+                components: [OKbutton]
+            }).catch(_err => isErr = true);
+            if(isErr) break;
+    
+            const filter = (i) => i.customId === 'OK';
+            let startBtn = await msgList[i].awaitMessageComponent({ filter: filter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+                .catch(() => {});
+            if (!startBtn) {
+                mainMsg.edit(`${userList[i]} (${userList[i].tag}) 並未對邀請做出回覆，因此取消開始遊戲。`);
+                msgList[i].edit({content: `剛剛 ${userList[0]} (${userList[0].tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
+                break;
+            } else {
+                agreeList[i] = true;
+                msgList.forEach(msg => {
+                    let acceptText = "";
+                    userList.forEach((u, v) => {
+                        if(agreeList[v]) acceptText += "✅同意邀請 - ";
+                        else acceptText += "⌛等待回應 - ";
+                        acceptText += `${u} (${u.tag})\n`;
+                    });
+                    msg.edit({
+                        content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n` + 
+                            `目前回應情況:\n${acceptText}`, 
+                        components: []
+                    });
+                })
+            }
+            
+        }
+
+        if(agreeList[userList.length-1] != true) {
+            let index = agreeList.findIndex(v => v === false);
+            agreeList.forEach((v, i) => {
+                if(v === true) {
+                    if(isErr) {
+                        msgList[i].edit({
+                            content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
+                            components: []
+                        });
+                        mainMsg.edit({
+                            content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
+                            components: []
+                        });
+                    } else {
+                        msgList[i].edit({
+                            content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
+                            components: []
+                        });
+                        mainMsg.edit({
+                            content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
+                            components: []
+                        });
+                    }
+                }
+            })
+            return;
+        }
+
+        //TODO: 上面應該都好了，下面還沒開始處理
+
+        await mainMsg.edit("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
         await playStartButtonp2.update({content: "即將開始遊戲...", components: []})
 
         let p1gameBoard = new Yacht(1);
@@ -113,20 +208,12 @@ module.exports = {
         /**
          * @type {Discord.Message<boolean>}
          */
-        const p1message = await p1user.send({
-            content: 
-                `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msgPlaying1}`,
-            components: [diceButton(3)]
-        }).catch(_err => isErr = true);
-        if(isErr) {
-            p2message.edit(`已取消遊戲，因為我無法傳送訊息給 ${p1user}。`)
-            return intermessage.edit("已取消遊戲，因為我無法傳送訊息給你。");
-        }
-        p2message.edit({
+        p2message.edit({ //TODO: 改成向所有人
             content: 
                 `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msgWaiting}`,
             components: []
         })
+        
 
         let p1collector = p1message.createMessageComponentCollector({time: timelimit * 60 * 1000 });
         let p2collector = p2message.createMessageComponentCollector({time: 999 * 60 * 1000 });
@@ -153,7 +240,7 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
-                intermessage.edit({
+                mainMsg.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
@@ -175,7 +262,7 @@ module.exports = {
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
-                intermessage.edit({
+                mainMsg.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
@@ -200,7 +287,7 @@ module.exports = {
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
                     components: [diceButton(3)]
                 })
-                intermessage.edit({
+                mainMsg.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, p1gameBoard)}\n玩家1${announcement}\n${msginter}`,
@@ -228,7 +315,7 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
-                intermessage.edit({
+                mainMsg.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
@@ -250,7 +337,7 @@ module.exports = {
                         `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
                     components: [allDiceButton(diceResult, diceReDice, reDice, false)]
                 });
-                intermessage.edit({
+                mainMsg.edit({
                     content: 
                         `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
@@ -263,7 +350,7 @@ module.exports = {
                 if(turn > 12) {
                     let gameInfo = `遊戲結束! 最終結果如下:\n\n玩家1: ${p1user}\n玩家2: ${p2user}`;
                     let winner = "";
-                    let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`
+                    let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`
                     let week = Math.floor( Date.now() / (1000 * 60 * 60 * 24 * 7) );
                     if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} (${p1user.tag}) 獲勝!`
                     else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} (${p2user.tag}) 獲勝!`
@@ -292,7 +379,7 @@ module.exports = {
                             `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
                         components: []
                     })
-                    intermessage.edit({
+                    mainMsg.edit({
                         content: `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`,
                         components: []
                     }).catch();
@@ -315,7 +402,7 @@ module.exports = {
                             `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
                         components: [diceButton(3)]
                     })
-                    intermessage.edit({
+                    mainMsg.edit({
                         content: 
                             `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
                             `${yakuCheck(diceResult, p1gameBoard)}\n玩家2${announcement}\n${msginter}`,
@@ -328,7 +415,7 @@ module.exports = {
         p1collector.on('end', (c, r) => {
             if(r !== "messageDelete" && r !== "p2end" && r !== "end"){
                 let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
-                let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
+                let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
                 p1message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
                         "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n" + msgInfo,
@@ -339,7 +426,7 @@ module.exports = {
                     "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
                     components: []
                 });
-                intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
+                mainMsg.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
                     "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
                 p2collector.stop("p1end");
             }
@@ -348,7 +435,7 @@ module.exports = {
         p2collector.on('end', (c, r) => {
             if(r !== "messageDelete" && r !== "p1end" && r !== "end"){
                 let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
-                let msgInfo = `結果同步紀錄於 ${intermessage.channel} 的這則訊息中:\n${intermessage.url}`;
+                let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
                 p2message.edit({
                     content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
                         "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
@@ -359,7 +446,7 @@ module.exports = {
                     "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
                     components: []
                 });
-                intermessage.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
+                mainMsg.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
                     "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
                 p2collector.stop("p2end");
             }
