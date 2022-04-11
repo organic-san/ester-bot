@@ -57,7 +57,7 @@ module.exports = {
          * @type {Discord.Message<boolean>}
          */
         let intermessage = await interaction.reply({content: help + "\n\n點選下方按鈕，向對方發送邀請。", fetchReply: true, components: [OKbutton]});
-        const filterp1 = (i) => {
+        const filterp1 = async (i) => {
             if(i.user.id !== p1user.id)
                 i.reply({content: "使用指令/yacht-dice可以遊玩快艇骰子。", ephemeral: true})
             else 
