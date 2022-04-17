@@ -1,7 +1,7 @@
 程式開發者 Developer
 =
 
-Discord: organic_san_2#0500 (810382984958967808)
+Discord: organic_san_2#2202 (810382984958967808)
 <br>
 Discord Server: [快樂光線基地](https://discord.gg/hveXGk5Qmz) 
 <br>
