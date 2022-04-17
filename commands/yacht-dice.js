@@ -16,7 +16,7 @@ module.exports = {
         .addUserOption(opt => 
             opt.setName('player1')
                 .setDescription('要共同遊玩的玩家一號')
-                .setRequired(true)
+                .setRequired(false)
         ).addUserOption(opt => 
             opt.setName('player2')
                 .setDescription('要共同遊玩的玩家二號')
