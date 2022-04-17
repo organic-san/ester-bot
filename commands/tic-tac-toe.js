@@ -26,6 +26,9 @@ module.exports = {
         let playingArray = [0, 0, 0, 0, 0, 0, 0, 0, 0];
         let turn = 1;
         let row = rowCreate(playingArray, false);
+        /**
+         * @type {Discord.Message<boolean>}
+         */
         const msg = await interaction.editReply({
             content: `來下一場圈圈叉叉吧!\n玩家: ${interaction.user}\n難度: \`${difficultyKey}\``, 
             components: row, 
