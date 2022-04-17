@@ -43,6 +43,9 @@ module.exports = {
         for(let i=1; i<userList.length; i++) {
             if(userList[i].bot) return interaction.reply("請不要在遊玩對象中包含機器人。");
             if(userList[i].id === userList[0].id) return interaction.reply("請不要在遊玩對象中包含自己。");
+            for(let j=i + 1; j<userList.length; j++) {
+                if(userList[i].id === userList[j].id) return interaction.reply("請不要重複輸入遊玩的對象。");
+            }
         }
         
         const help = 
@@ -86,14 +89,17 @@ module.exports = {
             fetchReply: true
         });
         //P1私訊發送
+        let lc = "";
+        if(userList.length > 1) lc = "\n\n點選下方按鈕，向以下玩家:\n" + msgUserList + "發送邀請。\n(注: 需要等所有玩家同意才會開始。)";
+        else lc ="\n\n點選下方按鈕開始遊戲。"
         msgList[0] = await userList[0].send({
-            content: help + "\n\n點選下方按鈕，向以下玩家:\n" + msgUserList + "發送邀請。\n(注: 需要等所有玩家同意才會開始。)", 
+            content: help + lc, 
             fetchReply: true, 
             components: [OKbutton]
         }).catch(_err => isErr = true);
         //私訊可行性檢查
         if(isErr) {
-            return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給你。");
+            return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給你。").catch(() => {});
         }
         //接收按鈕
         const mMsgfilter = async (i) => {
@@ -103,354 +109,354 @@ module.exports = {
         let p1StartBtn = await msgList[0].awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!p1StartBtn) {
-            return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向其他玩家傳送邀請。", components: []});
+            return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向其他玩家傳送邀請。", components: []}).catch(() => {});
         }
 
-        let agreeList = [true, false, false, false, false, false, false, false, false, false];
+        if(userList.length > 1) {
+            let agreeList = [true, false, false, false, false, false, false, false, false, false];
 
-        let acceptText = "";
-        userList.forEach((u, v) => {
-            if(agreeList[v]) acceptText += "✅同意邀請 - ";
-            else acceptText += "⌛等待回應 - ";
-            acceptText += `${u} (${u.tag})\n`;
+            let acceptText = "";
+            userList.forEach((u, v) => {
+                if(agreeList[v]) acceptText += "✅ - ";
+                else acceptText += "⌛ - ";
+                acceptText += `${u} (${u.tag})\n`;
+                
+            });
+            msgList[0].edit({
+                content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n${acceptText}`, 
+                components: []
+            });
             
-        });
-        msgList[0].edit({
-            content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n` + 
-                `目前回應情況:\n${acceptText}`, 
-            components: []
-        });
+            for(let i=1; i<userList.length; i++) {
+                msgList[i] = await userList[i].send({
+                    content: 
+                        `${userList[0]} (${userList[0].tag}) 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，` + 
+                        `向這些人們:\n${msgUserList}發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
+                        help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
+                    components: [OKbutton]
+                }).catch(_err => isErr = true);
+                if(isErr) break;
         
-        for(let i=1; i<userList.length; i++) {
-            msgList[i] = await userList[i].send({
-                content: 
-                    `${userList[0]} (${userList[0].tag}) 從 **${interaction.guild.name}** 的 ${interaction.channel} 頻道，` + 
-                    `向這些人們:\n${msgUserList}發出快艇骰子(/yacht-dice)的遊玩邀請。\n\n` + 
-                    help + `\n\n按下下面的按鈕可以開始進行遊戲。\n如果不想進行遊戲，請忽略本訊息。`, 
-                components: [OKbutton]
-            }).catch(_err => isErr = true);
-            if(isErr) break;
-    
-            const filter = (i) => i.customId === 'OK';
-            let startBtn = await msgList[i].awaitMessageComponent({ filter: filter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
-                .catch(() => {});
-            if (!startBtn) {
-                mainMsg.edit(`${userList[i]} (${userList[i].tag}) 並未對邀請做出回覆，因此取消開始遊戲。`);
-                msgList[i].edit({content: `剛剛 ${userList[0]} (${userList[0].tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
-                break;
-            } else {
-                agreeList[i] = true;
-                msgList.forEach(msg => {
-                    let acceptText = "";
-                    userList.forEach((u, v) => {
-                        if(agreeList[v]) acceptText += "✅同意邀請 - ";
-                        else acceptText += "⌛等待回應 - ";
-                        acceptText += `${u} (${u.tag})\n`;
-                    });
-                    msg.edit({
-                        content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n` + 
-                            `目前回應情況:\n${acceptText}`, 
-                        components: []
-                    });
-                })
-            }
-            
-        }
-
-        if(agreeList[userList.length-1] != true) {
-            let index = agreeList.findIndex(v => v === false);
-            agreeList.forEach((v, i) => {
-                if(v === true) {
-                    if(isErr) {
-                        msgList[i].edit({
-                            content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
+                const filter = (i) => i.customId === 'OK';
+                let startBtn = await msgList[i].awaitMessageComponent({ filter: filter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+                    .catch(() => {});
+                if (!startBtn) {
+                    mainMsg.edit(`${userList[i]} (${userList[i].tag}) 並未對邀請做出回覆，因此取消開始遊戲。`).catch(() => {});
+                    msgList[i].edit({content: `剛剛 ${userList[0]} (${userList[0].tag}) 向你發送了快艇骰子(/yacht-dice)的遊玩邀請，但你並未回覆。`, components: []});
+                    break;
+                } else {
+                    await startBtn.deferUpdate();
+                    agreeList[i] = true;
+                    msgList.forEach(msg => {
+                        let acceptText = "";
+                        userList.forEach((u, v) => {
+                            if(agreeList[v]) acceptText += "✅ - ";
+                            else acceptText += "⌛ - ";
+                            acceptText += `${u} (${u.tag})\n`;
+                        });
+                        msg.edit({
+                            content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n${acceptText}`, 
                             components: []
                         });
-                        mainMsg.edit({
-                            content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
-                            components: []
-                        });
-                    } else {
-                        msgList[i].edit({
-                            content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
-                            components: []
-                        });
-                        mainMsg.edit({
-                            content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
-                            components: []
-                        });
-                    }
+                    })
                 }
+                
+            }
+
+            if(agreeList[userList.length-1] != true) {
+                let index = agreeList.findIndex(v => v === false);
+                agreeList.forEach((v, i) => {
+                    if(v === true) {
+                        if(isErr) {
+                            msgList[i].edit({
+                                content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
+                                components: []
+                            });
+                            mainMsg.edit({
+                                content: `由於我無法向 ${userList[index]} (${userList[index].tag}) 發送私訊，因此取消開始遊戲。`,
+                                components: []
+                            }).catch(() => {});
+                        } else {
+                            msgList[i].edit({
+                                content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
+                                components: []
+                            });
+                            mainMsg.edit({
+                                content: `由於 ${userList[index]} (${userList[index].tag}) 沒有回覆，因此取消開始遊戲。`,
+                                components: []
+                            }).catch(() => {});
+                        }
+                    }
+                })
+                return;
+            }
+
+            await mainMsg.edit("即將開始遊戲...").catch(() => {});
+            msgList.forEach(async msg => {
+                await msg.edit({
+                    content: `即將開始遊戲...`, 
+                    components: []
+                });
             })
-            return;
         }
 
-        //TODO: 上面應該都好了，下面還沒開始處理
+        /**
+         * @type {Array<Yacht>}
+         */
+        let gameBoardList = [];
+        for(let i=0; i<userList.length; i++) {
+            gameBoardList.push(new Yacht(i + 1))
+        }
+        const reDiceMax = 3; //總擲骰次數上限
+        let turn = 1; //起始回合
+        let nowUser = 0;
 
-        await mainMsg.edit("對方同意遊玩邀請了! 即將開始遊戲，請檢查私訊...")
-        await playStartButtonp2.update({content: "即將開始遊戲...", components: []})
+        /**
+         * 
+         * @param {Array<Discord.User>} userList 
+         * @param {number} turn 
+         */
+        let gameInfoA = (userList, turn) => {
+            let info = `遊戲: 快艇骰子\n回合: 第 ${turn} / 12 回合\n`;
+            userList.forEach((user, v) => {
+                info += `玩家${v + 1}: ${user} (${user.tag})\n`;
+            });
+            return info;
+        };
 
-        let p1gameBoard = new Yacht(1);
-        let p2gameBoard = new Yacht(2);
-        const reDiceMax = 3;
-        let turn = 1;
-        let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDiceMax);
-        const msgPlaying1 = "按下擲骰按鈕開始這回合。";
-        const msgPlaying2 = 
+        /**
+         * 
+         * @param {Discord.User} nowUser 
+         * @param {number} redice 
+         */
+        let gameInfoB = (nowUser, redice) => {
+            let info = `目前操作玩家: ${nowUser} (${nowUser.tag})\n還可以再骰 ${redice} 次骰子\n`;
+            return info;
+        };
+
+        const msgPlayingA = "按下擲骰按鈕開始這回合。";
+        const msgPlayingB = 
             "點選擲骰按鈕時，將會重新擲出綠色骰子的結果，點選骰子讓它變成灰色可保留那一顆骰子的結果。\n" + 
             "骰出結果後，請選擇一個適合的組合。";
         const msgWaiting = "正在等待對方執行操作...";
-        const msginter = "遊戲正在進行中...";
-        const timelimit = 3;
+        const msgMain = "遊戲正在進行中...";
+        const timelimit = 3; //min
         const diceMax = 5;
         let announcement = "";
 
-        /**
-         * @type {Discord.Message<boolean>}
-         */
-        p2message.edit({ //TODO: 改成向所有人
-            content: 
-                `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${msgWaiting}`,
-            components: []
-        })
-        
+        let gameA = gameInfoA(userList, turn);
+        let gameB = gameInfoB(userList[nowUser], reDiceMax);
+        let content = `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${gameB}`;
 
-        let p1collector = p1message.createMessageComponentCollector({time: timelimit * 60 * 1000 });
-        let p2collector = p2message.createMessageComponentCollector({time: 999 * 60 * 1000 });
+        msgList.forEach((msg, value) => {
+            if(value === 0) {
+                msg.edit({
+                    content: content + msgPlayingA,
+                    components: [diceButton(3)]
+                })
+            } else {
+                msg.edit({
+                    content: content + msgWaiting,
+                    components: []
+                })
+            }
+        })
+
+        /**
+         * @type {Array<Discord.InteractionCollector<Discord.MessageComponentInteraction<Discord.CacheType>>>}
+         */
+        let collectorList = [];
+        collectorList[0] = msgList[0].createMessageComponentCollector({time: timelimit * 60 * 1000 });
+        for(let i=1; i<userList.length; i++) {
+            collectorList.push(msgList[i].createMessageComponentCollector({time: 999 * 60 * 1000 }));
+        }
 
         let diceResult = [0,0,0,0,0];
         let diceReDice = [true, true, true, true, true];
         let reDice = reDiceMax;
-        p1collector.on('collect', async i => {
-            p1collector.resetTimer({time: timelimit * 60 * 1000 });
-            await i.deferUpdate();
-            if(i.customId === 'Dice') {
-                reDice--;
-                let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
-                for(let rdi = 0; rdi < diceMax; rdi ++) if(diceReDice[rdi]) {diceResult[rdi] = (Math.floor(Math.random() * 6) + 1);}
-                p1message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
-                });
-                p2message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                });
-                mainMsg.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                }).catch();
-            } else if(i.customId.startsWith('dice')) {
-                let did = parseInt(i.customId[4]);
-                diceReDice[did] = !diceReDice[did];
-                let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
-                p1message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgPlaying2}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p1gameBoard)]
-                });
-                p2message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msgWaiting}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                });
-                mainMsg.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                }).catch();
-            } else if(i.customId === "yaku") {
-                let yaku = i.values[0];
-                reDice = reDiceMax;
-                announcement = p1gameBoard.putPoint(yaku, diceResult);
-                diceResult = [0,0,0,0,0];
-                diceReDice = [true, true, true, true, true];
-                p1collector.resetTimer({time: 999 * 60 * 1000 });
-                p2collector.resetTimer({time: timelimit * 60 * 1000 });
-                let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
-                p1message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n你${announcement}\n${msgWaiting}`,
-                    components: []
-                })
-                p2message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
-                    components: [diceButton(3)]
-                })
-                mainMsg.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n玩家1${announcement}\n${msginter}`,
-                    components: []
-                }).catch();
-            }
-        });
+        collectorList.forEach(async collector => {
+            collector.on('collect', async i => {
+                await i.deferUpdate();
+                collector.resetTimer({time: timelimit * 60 * 1000 });
+                if(i.customId === 'Dice' || i.customId.startsWith('dice')) {
+                    if(i.customId === 'Dice') {
+                        reDice--;
+                        for(let rdi = 0; rdi < diceMax; rdi ++) {
+                            if(diceReDice[rdi]) diceResult[rdi] = (Math.floor(Math.random() * 6) + 1);
+                        }
+                    } else {
+                        let did = parseInt(i.customId[4]);
+                        diceReDice[did] = !diceReDice[did];
+                    }
+                    gameA = gameInfoA(userList, turn);
+                    gameB = gameInfoB(userList[nowUser], reDice);
+                    let content = 
+                        `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                        `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${gameB}`;
 
-        p2collector.on('collect', async i => {
-            p2collector.resetTimer({time: timelimit * 60 * 1000 });
-            await i.deferUpdate();
-            if(i.customId === 'Dice') {
-                reDice--;
-                let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
-                for(let rdi = 0; rdi < diceMax; rdi ++) if(diceReDice[rdi]) {diceResult[rdi] = (Math.floor(Math.random() * 6) + 1);}
-                p2message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
-                });
-                p1message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                });
-                mainMsg.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
-                        components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                }).catch();
-            } else if(i.customId.startsWith('dice')) {
-                let did = parseInt(i.customId[4]);
-                diceReDice[did] = !diceReDice[did];
-                let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
-                p2message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgPlaying2}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, true), diceButton(reDice), selectMenu(diceResult, p2gameBoard)]
-                });
-                p1message.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p2gameBoard)}\n${msgWaiting}`,
-                    components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                });
-                mainMsg.edit({
-                    content: 
-                        `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                        `${yakuCheck(diceResult, p1gameBoard)}\n${msginter}`,
-                        components: [allDiceButton(diceResult, diceReDice, reDice, false)]
-                }).catch();
-            } else if(i.customId === "yaku") {
-                let yaku = i.values[0];
-                turn ++;
-                announcement = p2gameBoard.putPoint(yaku, diceResult);
-                if(turn > 12) {
-                    let gameInfo = `遊戲結束! 最終結果如下:\n\n玩家1: ${p1user}\n玩家2: ${p2user}`;
-                    let winner = "";
-                    let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`
-                    let week = Math.floor( Date.now() / (1000 * 60 * 60 * 24 * 7) );
-                    if(p1gameBoard.pointCalc() > p2gameBoard.pointCalc()) winner = `恭喜 ${p1user} (${p1user.tag}) 獲勝!`
-                    else if(p1gameBoard.pointCalc() < p2gameBoard.pointCalc()) winner = `恭喜 ${p2user} (${p2user.tag}) 獲勝!`
-                    else if(p1gameBoard.pointCalc() === p2gameBoard.pointCalc()) winner = `雙方平手!`
-                    let higher = p1gameBoard.pointCalc() > p2gameBoard.pointCalc() ? p1gameBoard.pointCalc() : p2gameBoard.pointCalc();
-                    if(record.maxiumYachtScore < higher) {
-                        record.maxiumYachtScore = higher;
-                        winner += "\n也更新了目前的最高紀錄!"
-                    } else if(record.maxiumYachtScore === higher) {
-                        winner += "\n也打平了目前的最高紀錄!"
-                    }
-                    if(record.weeklyYachtScore < higher || record.weeklyYachtScoreWeek !== week) {
-                        record.weeklyYachtScore = higher;
-                        record.weeklyYachtScoreWeek = week;
-                        winner += "\n也更新了本周的最高紀錄!"
-                    } else if(record.weeklyYachtScore === higher) {
-                        winner += "\n也打平了本周的最高紀錄!"
-                    }
-                    p2message.edit({
-                        content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
-                        components: []
-                    })
-                    p1message.edit({
-                        content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}\n${msgInfo}`,
-                        components: []
+                    msgList.forEach((msg, uid) => {
+                        if(uid === nowUser) {
+                            msg.edit({
+                                content: content + msgPlayingB,
+                                components: [
+                                    allDiceButton(diceResult, diceReDice, reDice, true), 
+                                    diceButton(reDice), 
+                                    selectMenu(diceResult, gameBoardList[nowUser])
+                                ]
+                            });
+                        } else {
+                            msg.edit({
+                                content: content + msgWaiting,
+                                components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                            })
+                        }
                     })
                     mainMsg.edit({
-                        content: `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n${winner}`,
-                        components: []
-                    }).catch();
-                    p2collector.stop("end");
-                    p1collector.stop("end");
-                } else {
+                        content: content + msgMain,
+                        components: [allDiceButton(diceResult, diceReDice, reDice, false)]
+                    }).catch(() => {});
+                } else if(i.customId === "yaku") {
+                    let yaku = i.values[0];
                     reDice = reDiceMax;
-                    diceResult = [0,0,0,0,0];
-                    diceReDice = [true, true, true, true, true];
-                    p2collector.resetTimer({time: 999 * 60 * 1000 });
-                    p1collector.resetTimer({time: timelimit * 60 * 1000 });
-                    let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
-                    p2message.edit({
-                        content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n你${announcement}\n${msgWaiting}`,
-                        components: []
-                    })
-                    p1message.edit({
-                        content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`\n對方${announcement}\n${msgPlaying1}`,
-                        components: [diceButton(3)]
+                    if(nowUser === userList.length - 1) turn ++;
+                    announcement =
+                        `${userList[nowUser]} (${userList[nowUser].tag}) ` + 
+                        gameBoardList[nowUser].putPoint(yaku, diceResult) + '\n';
+
+                    if(turn > 12 && nowUser === (userList.length - 1)) {
+                        content = `遊戲結束! 最終結果如下:\n\n`;
+                        userList.forEach((user, v) => {
+                            content += `玩家${v + 1}: ${user} (${user.tag})\n`;
+                        });
+                        let winner = "";
+                        let msgInfo = `\n結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
+                        let week = Math.floor( ((Date.now() / (1000 * 60 * 60 * 24 )) - 3) / 7 );
+                        /**
+                         * @type {Array<number>}
+                         */
+                        let scoreList = [];
+                        let sortScoreList = [];
+                        gameBoardList.forEach(game => {
+                            scoreList.push(game.pointCalc());
+                            sortScoreList.push(game.pointCalc());
+                        })
+                        let highest = Math.max(...scoreList);
+                        
+                        if(userList.length > 1) {
+                            let medal = ["🥇", "🥈", "🥉", "🍃"];
+                            winner += "最終排名如下:"
+                            
+                            sortScoreList.sort((a, b) => b - a);
+                            let rankKeep = 0;
+                            sortScoreList.forEach((score, uid) => {
+                                if((uid > 0)  && (score === sortScoreList[uid - 1])) rankKeep ++;
+                                else rankKeep = 0; 
+                                let index = scoreList.findIndex((s => s === score));
+                                winner += `\n${medal[uid - rankKeep]} ${score}分 - ${userList[index]} (${userList[index].tag})`;
+                                scoreList[index] = -1;
+                            })
+                        } else {
+                            winner = `🏆恭喜 ${userList[0]} (${userList[0].tag}) 獲得了 ${gameBoardList[0].pointCalc()} 分!`
+                        }
+
+                        if(record.maxiumYachtScore <= highest || record.weeklyYachtScore <= highest || record.weeklyYachtScoreWeek !== week)
+                            winner += '\n';
+                        if(record.maxiumYachtScore < highest) {
+                            winner += `\n🌟更新了目前的最高紀錄!`;
+                            record.maxiumYachtScore = highest;
+                        } else if(record.maxiumYachtScore === highest) {
+                            winner += `\n⭐打平了目前的最高紀錄!`;
+                        }
+                        if(record.weeklyYachtScore < highest || record.weeklyYachtScoreWeek !== week) {
+                            record.weeklyYachtScore = highest;
+                            record.weeklyYachtScoreWeek = week;
+                            winner += `\n🌟更新了本周的最高紀錄!`;
+                        } else if(record.weeklyYachtScore === highest) {
+                            winner += `\n⭐打平了本周的最高紀錄!`;
+                        }
+
+                        content += `\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${winner}\n`;
+                        msgList.forEach((msg) => {
+                            msg.edit({
+                                content: content + msgInfo,
+                                components: []
+                            })
+                        })
+                        mainMsg.edit({
+                            content: content,
+                            components: []
+                        }).catch();
+                        collectorList.forEach(collector => {
+                            collector.stop("end");
+                        })
+                    } else {
+                        diceResult = [0,0,0,0,0];
+                        diceReDice = [true, true, true, true, true];
+                        nowUser ++;
+                        nowUser = nowUser % userList.length;
+                        collectorList.forEach((collector, uid) => {
+                            if(uid === nowUser) collector.resetTimer({time: timelimit * 60 * 1000 });
+                            else collector.resetTimer({time: 999 * 60 * 1000 });
+                        });
+                        gameA = gameInfoA(userList, turn);
+                        gameB = gameInfoB(userList[nowUser], reDice);
+                        let content = 
+                            `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                            `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${announcement}${gameB}`;
+                        msgList.forEach((msg, uid) => {
+                            if(uid === nowUser) {
+                                msg.edit({
+                                    content: content + msgPlayingA,
+                                    components: [diceButton(reDice)]
+                                });
+                            } else {
+                                msg.edit({
+                                    content: content +  msgWaiting,
+                                    components: []
+                                })
+                            }
+                        })
+                        mainMsg.edit({
+                            content: content + msgMain,
+                            components: []
+                        }).catch(() => {});
+                    }
+                }
+            });
+
+            collector.on('end', (c, r) => {
+                if(r !== "messageDelete" && r !== "end"){
+                    gameA = gameInfoA(userList, turn);
+                    gameB = gameInfoB(userList[nowUser], reDice);
+                    let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
+                    content = "結果如下:\n" + gameA + "```\n" + Yacht.textData(gameBoardList) + "\n```\n";
+                    msgList.forEach((msg, uid) => {
+                        if(uid === nowUser) {
+                            msg.edit({
+                                content: 
+                                    "由於你太久沒有回應，因此結束了這場遊戲。\n" + content + msgInfo,
+                                components: []
+                            })
+                        } else {
+                            msg.edit({
+                                content: 
+                                    `由於 ${userList[nowUser]} (${userList[nowUser].tag}) ` + 
+                                    `太久沒有回應，因此結束了這場遊戲。\n\n` + content + msgInfo,
+                                components: []
+                            })
+                        }
                     })
                     mainMsg.edit({
                         content: 
-                            `${gameInfo}\n\`\`\`\n${Yacht.textData(p1gameBoard, p2gameBoard)}\n\`\`\`` + 
-                            `${yakuCheck(diceResult, p1gameBoard)}\n玩家2${announcement}\n${msginter}`,
-                            components: []
-                    }).catch();
+                            "遊戲因為操作逾時而結束。" + content,
+                        components: []
+                    }).catch(() => {});
+                    collectorList.forEach((collector, uid) => {
+                        if(uid !== nowUser) collector.stop('end');
+                    })
                 }
-            }
-        });
-
-        p1collector.on('end', (c, r) => {
-            if(r !== "messageDelete" && r !== "p2end" && r !== "end"){
-                let gameInfo = GameInfo(p1user, p2user, p1user, turn, reDice);
-                let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
-                p1message.edit({
-                    content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n" + msgInfo,
-                    components: []
-                });
-                p2message.edit({
-                    content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
-                    components: []
-                });
-                mainMsg.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
-                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
-                p2collector.stop("p1end");
-            }
-        });
-
-        p2collector.on('end', (c, r) => {
-            if(r !== "messageDelete" && r !== "p1end" && r !== "end"){
-                let gameInfo = GameInfo(p1user, p2user, p2user, turn, reDice);
-                let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
-                p2message.edit({
-                    content: "你太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                        "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
-                    components: []
-                });
-                p1message.edit({
-                    content: "因為對方太久沒有回應，因此結束了這場遊戲。\n最後的結果長這樣:\n\n" + gameInfo + 
-                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```\n"  + msgInfo,
-                    components: []
-                });
-                mainMsg.edit("遊戲因為操作逾時而結束。結果如下: \n\n" + gameInfo + 
-                    "\n```\n" + Yacht.textData(p1gameBoard, p2gameBoard) + "\n```",).catch();
-                p2collector.stop("p2end");
-            }
-        });
+            })
+        })
 	},
 };
 
@@ -637,7 +643,7 @@ class Yacht {
     /**
      * @param {Array<Yacht>} yathtData
      */
-    static textData(...yathtData) {
+    static textData(yathtData) {
         let pointText = "組合名稱  ";
         yathtData.forEach(v => pointText += ("玩家" + v.playerNumber.toString() + "  "))
         pointText += `\n  一點    `;
@@ -678,20 +684,6 @@ class Yacht {
         return pointText;
     }
 
-}
-
-/**
- * 
- * @param {Discord.user} p1user 
- * @param {Discord.user} p2user 
- * @param {Discord.user} nowplayer 
- * @param {number} turn 
- * @param {number} reDice 
- * @returns 
- */
-function GameInfo(p1user, p2user, nowplayer, turn, reDice) {
-    return `遊戲: 快艇骰子\n玩家1: ${p1user} (${p1user.tag})\n玩家2: ${p2user} (${p2user.tag})\n` + 
-        `回合: 第 ${turn} / 12 回合\n目前操作玩家: ${nowplayer}\n剩餘骰骰子次數: ${reDice}`;
 }
 
 function diceButton(redice) {
@@ -828,7 +820,7 @@ function yakuCheck(dr, yacht) {
     let drs = [0,0,0,0,0,0];
     dr.forEach(d => drs[d-1]++);
     if(drs.includes(5) && yacht.yacht === "--") {
-        return "\`\`\`\n__人人人人人人人__\n＞   🎉快艇!   ＜\n￣Y^Y^Y^Y^Y^Y^Y￣\`\`\`"
+        return "\`\`\`\n__人人人人人人人人__\n＞   🚤快艇🎉!   ＜\n￣Y^Y^Y^Y^Y^Y^Y^Y￣\`\`\`"
     }
     if(((drs.includes(3) && drs.includes(2)) || drs.includes(5)) && yacht.fullHouse === "--") {
         return "\`\`\`\n__人人人人人__\n＞   葫蘆!  ＜\n￣Y^Y^Y^Y^Y￣\`\`\`"
