@@ -126,6 +126,10 @@ module.exports = {
                 content: `已向其他玩家發送遊玩邀請，請稍後大家的回復...\n\n${acceptText}`, 
                 components: []
             });
+            mainMsg.edit({
+                content: `正在等待其他玩家同意邀請...`, 
+                components: []
+            });
             
             for(let i=1; i<userList.length; i++) {
                 msgList[i] = await userList[i].send({
@@ -290,7 +294,7 @@ module.exports = {
                     }
                     gameA = gameInfoA(userList, turn);
                     gameB = gameInfoB(userList[nowUser], reDice);
-                    let content = 
+                    content = 
                         `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
                         `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${gameB}`;
 
@@ -400,7 +404,7 @@ module.exports = {
                         });
                         gameA = gameInfoA(userList, turn);
                         gameB = gameInfoB(userList[nowUser], reDice);
-                        let content = 
+                        content = 
                             `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
                             `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${announcement}${gameB}`;
                         msgList.forEach((msg, uid) => {
@@ -645,7 +649,10 @@ class Yacht {
      */
     static textData(yathtData) {
         let pointText = "組合名稱  ";
-        yathtData.forEach(v => pointText += ("玩家" + v.playerNumber.toString() + "  "))
+        yathtData.forEach((v, r) => {
+            pointText += ("玩家" + v.playerNumber.toString() + "  ");
+            if((r % 2) === 1) pointText += " ";
+        })
         pointText += `\n  一點    `;
         yathtData.forEach(v => pointText += v.ones.toString().padStart(3, " ") + "    ");
         pointText += `\n  二點    `;
