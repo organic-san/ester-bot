@@ -18,7 +18,7 @@ module.exports = {
                     .setRequired(true)
                     .addChoice("歡迎訊息", "join")
                     .addChoice("送別訊息", "leave")
-                    .addChoice("兩邊我都要!", "joinandleave")
+                    .addChoice("兩邊都要設定", "joinandleave")
                 ).addChannelOption(opt => 
                     opt.setName('channel')
                     .setDescription('設定為發送歡迎訊息的頻道，不輸入則設定為系統訊息頻道')
@@ -34,7 +34,7 @@ module.exports = {
                     .addChoice("送別訊息", "leave")
                 ).addStringOption(opt => 
                     opt.setName('message')
-                    .setDescription('歡迎訊息的內容，在其中輸入<user>，會轉換成加入的用戶名稱(必填)，<server>則會轉換成伺服器名稱。空格將是為換行。設為空白將使用預設文字。')
+                    .setDescription('歡迎訊息的內容。需填入標記:(必填)<user>、(選填)<server>。設為空白將使用預設文字。')
                 )
             )
         ).addSubcommand(opt => 
@@ -46,7 +46,7 @@ module.exports = {
                 .setRequired(true)
                 .addChoice("歡迎訊息", "join")
                 .addChoice("送別訊息", "leave")
-                .addChoice("兩邊我都要!", "joinandleave")
+                .addChoice("兩邊都要開啟", "joinandleave")
             )
         ).addSubcommand(opt => 
             opt.setName('close')
@@ -57,7 +57,7 @@ module.exports = {
                 .setRequired(true)
                 .addChoice("歡迎訊息", "join")
                 .addChoice("送別訊息", "leave")
-                .addChoice("兩邊我都要!", "joinandleave")
+                .addChoice("兩邊都要關閉", "joinandleave")
             )
         ).addSubcommand(opt => 
             opt.setName('show')
@@ -135,16 +135,22 @@ module.exports = {
                     case 'join': setType = 0; break;
                     case 'leave': setType = 1; break;
                 }
-                const userMatch = message.match(/<(U|u)(S|s)(E|e)(R|r)>/g);
-                if(!userMatch) return interaction.reply({content: '請在訊息中加入一個<user>，將替換為新加入的用戶。', ephemeral: true});
-                if(userMatch.length > 1) return interaction.reply({content: '<user>至多請只加入一組。', ephemeral: true});
+                if(!message) {
+                    const userMatch = message.match(/<(U|u)(S|s)(E|e)(R|r)>/g);
+                    if(!userMatch) return interaction.reply({content: '請在訊息中加入一個<user>，將替換為新加入的用戶。', ephemeral: true});
+                    if(userMatch.length > 1) return interaction.reply({content: '<user>至多請只加入一組。', ephemeral: true});
+                    
+                    const serverMatch = message.match(/<(S|s)(E|e)(R|r)(V|v)(E|e)(R|r)>/g);
+                    if(serverMatch?.length > 1) return interaction.reply({content: '<server>至多請只加入一組。', ephemeral: true});
+                    message = message.split(userMatch[0]).join('<user>');
+                    if(serverMatch) message = message.split(serverMatch[0]).join('<server>');
+                    if(setType === 0) guildInformation.joinMessageContent = message;
+                    else guildInformation.leaveMessageContent = message;
+                } else {
+                    if(setType === 0) guildInformation.joinMessageContent = "";
+                    else guildInformation.leaveMessageContent = "";
+                }
                 
-                const serverMatch = message.match(/<(S|s)(E|e)(R|r)(V|v)(E|e)(R|r)>/g);
-                if(serverMatch?.length > 1) return interaction.reply({content: '<server>至多請只加入一組。', ephemeral: true});
-                message = message.split(userMatch[0]).join('<user>');
-                if(serverMatch) message = message.split(serverMatch[0]).join('<server>');
-                if(setType === 0) guildInformation.joinMessageContent = message;
-                else guildInformation.leaveMessageContent = message;
                 interaction.reply(`設定完成:\n` + 
                     `歡迎訊息: ${guildInformation.joinMessageContent || "未定義(使用預設)"}\n` +
                     `送別訊息: ${guildInformation.leaveMessageContent || "未定義(使用預設)"}`)
