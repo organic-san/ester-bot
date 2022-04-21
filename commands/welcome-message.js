@@ -135,7 +135,7 @@ module.exports = {
                     case 'join': setType = 0; break;
                     case 'leave': setType = 1; break;
                 }
-                if(!message) {
+                if(message) {
                     const userMatch = message.match(/<(U|u)(S|s)(E|e)(R|r)>/g);
                     if(!userMatch) return interaction.reply({content: '請在訊息中加入一個<user>，將替換為新加入的用戶。', ephemeral: true});
                     if(userMatch.length > 1) return interaction.reply({content: '<user>至多請只加入一組。', ephemeral: true});
