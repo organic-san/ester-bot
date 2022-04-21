@@ -35,7 +35,7 @@ module.exports = {
             switch(Math.floor(Math.random()*3)){
                 case 0: message = message + `哎呀！平手！`; break;
                 case 1: message = message + `我們之間是無法有勝負的嗎...`; break;
-                case 2: message = message + `你覺得來自深淵怎麼樣？(逃`; break;
+                case 2: message = message + `再來猜一次吧！我們之間必須要有勝負！`; break;
             }
         }else if((mode === 0 && finger === 2)||(mode === 1 && finger === 0)||(mode === 2 && finger === 1)){
             message = message + '\[判定：成功🎉\]\n';
