@@ -19,14 +19,14 @@ module.exports = {
             .setDescription('每日單字產生器')
             .addIntegerOption(opt => 
                 opt.setName('amount')
-                .setDescription('每日單字的單字數量，上48，預設30')
-            ).addIntegerOption(opt => 
+                .setDescription('每日單字的單字數量，上限48，預設30')
+            )/*.addIntegerOption(opt => 
                 opt.setName('rank-limit-low')
                 .setDescription('每日單字中的等級範圍下限，範圍請在1~6之間。等級請參考台灣教育部的單字分級。')
             ).addIntegerOption(opt => 
                 opt.setName('rank-limit-high')
                 .setDescription('每日單字中的等級範圍上限，範圍請在1~6之間。等級請參考台灣教育部的單字分級。')
-            )
+            )*/
         ),
     tag: "interaction",
 
@@ -49,17 +49,17 @@ module.exports = {
                 if(index < 0) index = characters.findIndex(element => element.character.toLowerCase().includes(word.toLowerCase()));
                 word = word.slice(0, word.length - 1);
             }
-            interaction.reply(`${head}\n單字：${characters[index].character}\n字義：${characters[index].mean}\n等級：${characters[index].rank}`);
+            interaction.reply(`${head}\n單字：${characters[index].character}\n字義：${characters[index].mean}`);
 
         } else if (interaction.options.getSubcommand() === 'daily') {
             await interaction.deferReply();
             const wordAmount = interaction.options.getInteger('amount') ?? 30;
-            const limitLow = interaction.options.getInteger('rank-limit-low') ?? 1;
-            const limitHigh = interaction.options.getInteger('rank-limit-high') ?? 7;
+            const limitLow = /*interaction.options.getInteger('rank-limit-low') ?? */1;
+            const limitHigh = /*interaction.options.getInteger('rank-limit-high') ?? */7;
 
             if(limitLow < 1 || limitHigh > 7 || limitLow > limitHigh) 
                 return interaction.reply({content: '無法產生所要求的等級範圍，請將等級設於1~6之間。', ephemeral: true});
-            const rankdefine = ['第一級', '第二級', '第三級', '第四級', '第五級', '第六級', '附錄'].slice(limitLow - 1, limitHigh);
+            const rankDefine = ['第一級', '第二級', '第三級', '第四級', '第五級', '第六級', '附錄'].slice(limitLow - 1, limitHigh);
 
 
             const now = new Date(Date.now());
@@ -81,14 +81,14 @@ module.exports = {
             for(let i = 0; i < wordAmount; i++){
                 seed = Math.floor(seededRandom(seed, characters.length - 1));
                 if(wordList.includes(characters[seed].character)) { i--; seed++; continue; }
-                if(!rankdefine.includes(characters[seed].rank)) { i--; seed++; continue; }
+                if(!rankDefine.includes(characters[seed].rank)) { i--; seed++; continue; }
 
                 wordList.push(characters[seed].character);
                 if(embed.fields.length < 24){
-                    embed.addField(`${i + 1}. ${characters[seed].character}\n${characters[seed].rank}`, 
+                    embed.addField(`${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
                         `||${characters[seed].mean.split("; [").join('\n[')}||`, true);
                 }else{
-                    embed2.addField(`${i + 1}. ${characters[seed].character}\n${characters[seed].rank}`, 
+                    embed2.addField(`${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
                         `||${characters[seed].mean.split("; [").join('\n[')}||`, true);
                 }
             }
