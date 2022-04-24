@@ -250,7 +250,8 @@ module.exports = {
 
         let gameA = gameInfoA(userList, turn);
         let gameB = gameInfoB(userList[nowUser], reDiceMax);
-        let content = `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${gameB}`;
+        let board = Yacht.textData(gameBoardList);
+        let content = `${gameA}\`\`\`\n${board}\n\`\`\`\n${gameB}`;
 
         msgList.forEach((msg, value) => {
             if(value === 0) {
@@ -295,7 +296,7 @@ module.exports = {
                     gameA = gameInfoA(userList, turn);
                     gameB = gameInfoB(userList[nowUser], reDice);
                     content = 
-                        `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                        `${gameA}\`\`\`\n${board}\n\`\`\`` + 
                         `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${gameB}`;
 
                     msgList.forEach((msg, uid) => {
@@ -326,6 +327,7 @@ module.exports = {
                     announcement =
                         `${userList[nowUser]} (${userList[nowUser].tag}) ` + 
                         gameBoardList[nowUser].putPoint(yaku, diceResult) + '\n';
+                    board = Yacht.textData(gameBoardList);
 
                     if(turn > 12 && nowUser === (userList.length - 1)) {
                         content = `遊戲結束! 最終結果如下:\n\n`;
@@ -379,7 +381,7 @@ module.exports = {
                             winner += `\n⭐打平了本周的最高紀錄!`;
                         }
 
-                        content += `\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${winner}\n`;
+                        content += `\`\`\`\n${board}\n\`\`\`\n${winner}\n`;
                         msgList.forEach((msg) => {
                             msg.edit({
                                 content: content + msgInfo,
@@ -405,7 +407,7 @@ module.exports = {
                         gameA = gameInfoA(userList, turn);
                         gameB = gameInfoB(userList[nowUser], reDice);
                         content = 
-                            `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                            `${gameA}\`\`\`\n${board}\n\`\`\`` + 
                             `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${announcement}${gameB}`;
                         msgList.forEach((msg, uid) => {
                             if(uid === nowUser) {
@@ -433,7 +435,7 @@ module.exports = {
                     gameA = gameInfoA(userList, turn);
                     gameB = gameInfoB(userList[nowUser], reDice);
                     let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
-                    content = "結果如下:\n" + gameA + "```\n" + Yacht.textData(gameBoardList) + "\n```\n";
+                    content = "結果如下:\n" + gameA + "```\n" + board + "\n```\n";
                     msgList.forEach((msg, uid) => {
                         if(uid === nowUser) {
                             msg.edit({
