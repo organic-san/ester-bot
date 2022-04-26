@@ -34,6 +34,7 @@ module.exports = {
      * @param {dataRecord} record
      */
 	async execute(interaction, record) {
+        
         const userList = [interaction.user];
         for(let i=1; i<4; i++) {
             if(interaction.options.getUser(`player${i}`))

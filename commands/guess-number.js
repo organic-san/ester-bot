@@ -63,7 +63,7 @@ module.exports = {
         let content = "";
         collector.on('collect', async i => {
             if(i.user.id !== interaction.user.id) return i.reply({content: "想參與遊戲可以用/guess-number開始喔!", ephemeral: true});
-            await i.deferUpdate();
+            await i.deferUpdate().catch(() => {});;
             if(i.customId === "cancel") collector.stop('end');
             if(!Number.isNaN(parseInt(i.customId)) || i.customId === "delete") {
                 if(!Number.isNaN(parseInt(i.customId))) guess.push(parseInt(i.customId));
