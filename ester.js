@@ -211,6 +211,7 @@ client.on('messageCreate', async msg =>{
         if(!msg.guild || !msg.member) return; //訊息內不存在guild元素 = 非群組消息(私聊)
         if(msg.channel.type === "DM") return; 
         if(msg.webhookId) return;
+        
 
         if(!guildInformation.has(msg.guild.id)){
             const filename = process.env.ACID_FILEROUTE;
@@ -663,8 +664,9 @@ client.on('guildMemberAdd', member => {
 });
 
 client.on('guildMemberRemove', member => {
-    if(!isready) return;
     record.user.leave++;
+    if(!isready) return;
+    if(member.id === client.user.id) return;
 
     const element = guildInformation.getGuild(member.guild.id);
     if(!element) return;

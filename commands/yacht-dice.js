@@ -129,7 +129,7 @@ module.exports = {
             mainMsg.edit({
                 content: `正在等待其他玩家同意邀請...`, 
                 components: []
-            });
+            }).catch(() => {});
             
             for(let i=1; i<userList.length; i++) {
                 msgList[i] = await userList[i].send({
@@ -391,7 +391,7 @@ module.exports = {
                         mainMsg.edit({
                             content: content,
                             components: []
-                        }).catch();
+                        }).catch(() => {});
                         collectorList.forEach(collector => {
                             collector.stop("end");
                         })
