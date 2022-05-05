@@ -281,7 +281,7 @@ module.exports = {
         let reDice = reDiceMax;
         collectorList.forEach(async collector => {
             collector.on('collect', async i => {
-                await i.deferUpdate();
+                await i.deferUpdate().catch(() => {});
                 collector.resetTimer({time: timelimit * 60 * 1000 });
                 if(i.customId === 'Dice' || i.customId.startsWith('dice')) {
                     if(i.customId === 'Dice') {
