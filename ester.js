@@ -193,9 +193,9 @@ client.on('interactionCreate', async interaction => {
 		console.error(error);
         try {
             if(interaction.replied) 
-                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] });
+                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] }).catch(() => {});
             else
-                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true });
+                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true }).catch(() => {});
         }catch(err) {
             console.log(err);
         }

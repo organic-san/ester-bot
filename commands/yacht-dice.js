@@ -48,6 +48,14 @@ module.exports = {
                 if(userList[i].id === userList[j].id) return interaction.reply("請不要重複輸入遊玩的對象。");
             }
         }
+
+        /**
+         * @type {Discord.Message<boolean>}
+         */
+         let mainMsg = await interaction.reply({
+            content: "已經將說明與開始遊玩發送至你的私訊，請檢查私訊...", 
+            fetchReply: true
+        });
         
         const help = 
             "快艇骰子 - 遊戲說明: \n" + 
@@ -81,13 +89,6 @@ module.exports = {
         let msgUserList = "";
         for(let i=1; i<userList.length; i++) msgUserList += `${userList[i]} (${userList[i].tag})\n`;
 
-        /**
-         * @type {Discord.Message<boolean>}
-         */
-        let mainMsg = await interaction.reply({
-            content: "已經將說明與開始遊玩發送至你的私訊，請檢查私訊...", 
-            fetchReply: true
-        });
         //P1私訊發送
         let lc = "";
         if(userList.length > 1) lc = "\n\n點選下方按鈕，向以下玩家:\n" + msgUserList + "發送邀請。\n(注: 需要等所有玩家同意才會開始。)";
