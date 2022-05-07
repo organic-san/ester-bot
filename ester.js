@@ -178,9 +178,9 @@ client.on('interactionCreate', async interaction => {
     }
     //#endregion    
     
-    if(!musicList.has(interaction.guild.id)){
-        musicList.set(interaction.guild.id, new musicbase.MusicList(interaction.client.user, interaction.guild, []));
-    }
+    //if(!musicList.has(interaction.guild.id)){
+    //    musicList.set(interaction.guild.id, new musicbase.MusicList(interaction.client.user, interaction.guild, []));
+    //}
 
 	try {
         if(command.tag === "interaction") await command.execute(interaction);
@@ -189,13 +189,12 @@ client.on('interactionCreate', async interaction => {
         if(command.tag === "guildInfoRecord") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id), record);
         if(command.tag === "record") await command.execute(interaction, record);
 	} catch (error) {
-        //console.log("err1")
 		console.error(error);
         try {
             if(interaction.replied) 
-                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] }).catch(() => {});
+                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] })//.catch(() => {});
             else
-                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true }).catch(() => {});
+                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true })//.catch(() => {});
         }catch(err) {
             console.log(err);
         }
@@ -261,7 +260,7 @@ client.on('messageCreate', async msg =>{
                 element.getUser(msg.author.id).tag = msg.author.tag;
                 const lvup = element.getUser(msg.author.id).addexp(Math.floor(Math.random() * 6) + 10, true);
                 if(lvup) element.sendLevelsUpMessage(msg.author, msg.channel, msg.guild, defpre);
-            }
+            } 
         }
         //#endregion
 
@@ -676,6 +675,9 @@ client.on('guildMemberAdd', member => {
     if(!element.joinMessage) return;
     if(!element.joinChannel){
         if(!member.guild.systemChannel) return;
+        if(!member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.joinMessageContent)
             member.guild.systemChannel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
         else{
@@ -688,6 +690,9 @@ client.on('guildMemberAdd', member => {
             
     }else{
         if(!textCommand.ChannelResolveFromMention(client, element.joinChannel)) return;
+        if(!client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.joinMessageContent)
             client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
         else{
@@ -698,7 +703,7 @@ client.on('guildMemberAdd', member => {
                 client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + 
                 `${element.joinMessageContent}`));
         }
-    }  
+    }
 });
 
 client.on('guildMemberRemove', member => {
@@ -711,6 +716,9 @@ client.on('guildMemberRemove', member => {
     if(!element.leaveMessage) return;
     if(!element.leaveChannel){
         if(!member.guild.systemChannel) return;
+        if(!member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.leaveMessageContent)
             member.guild.systemChannel.send(`**${member.user.tag}** 已遠離我們而去。`);
         else{
@@ -719,6 +727,9 @@ client.on('guildMemberRemove', member => {
         }
     }else{
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
+        if(!client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.leaveMessageContent)
             client.channels.fetch(element.leaveChannel).then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
         else{
