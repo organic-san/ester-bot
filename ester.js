@@ -698,13 +698,13 @@ client.on('guildMemberAdd', async member => {
             !channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
-            channel.then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
+            channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
         else{
             if(element.joinMessageContent.includes("<user>") || element.joinMessageContent.includes("<server>")){
                 const msg = element.joinMessageContent.split("<user>").join(` ${member} `).split("<server>").join(` **${member.guild.name}** `);
-                channel.then(channel => channel.send(msg));
+                channel.send(msg);
             }else
-                channel.then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + `${element.joinMessageContent}`));
+                channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + `${element.joinMessageContent}`);
         }
     }
 });
@@ -725,23 +725,21 @@ client.on('guildMemberRemove', async member => {
         if(!element.leaveMessageContent)
             member.guild.systemChannel.send(`**${member.user.tag}** 已遠離我們而去。`);
         else{
-            const msg = element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `)
-            member.guild.systemChannel.send(msg);
+            member.guild.systemChannel.send(element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `));
         }
     }else{
         /**
          * @type {Discord.TextChannel}
          */
-         let channel = await client.channels.fetch(element.leaveChannel);
+         let ch = await client.channels.fetch(element.leaveChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
-        if(!channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!ch.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !ch.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
-            channel.then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
+            ch.send(`**${member.user.tag}** 已遠離我們而去。`);
         else{
-            const msg = element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `)
-            channel.then(channel => channel.send(msg));
+            ch.send(element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `));
         }
     }  
 });
