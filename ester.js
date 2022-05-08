@@ -675,8 +675,8 @@ client.on('guildMemberAdd', member => {
     if(!element.joinMessage) return;
     if(!element.joinChannel){
         if(!member.guild.systemChannel) return;
-        if(!member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
             member.guild.systemChannel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
@@ -690,8 +690,8 @@ client.on('guildMemberAdd', member => {
             
     }else{
         if(!textCommand.ChannelResolveFromMention(client, element.joinChannel)) return;
-        if(!client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
             client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
@@ -716,8 +716,8 @@ client.on('guildMemberRemove', member => {
     if(!element.leaveMessage) return;
     if(!element.leaveChannel){
         if(!member.guild.systemChannel) return;
-        if(!member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !member.guild.systemChannel.permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
             member.guild.systemChannel.send(`**${member.user.tag}** 已遠離我們而去。`);
@@ -727,8 +727,8 @@ client.on('guildMemberRemove', member => {
         }
     }else{
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
-        if(!client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !client.channels.fetch(element.joinChannel).permissionsFor(user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
             client.channels.fetch(element.leaveChannel).then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
