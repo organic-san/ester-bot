@@ -689,19 +689,22 @@ client.on('guildMemberAdd', member => {
         }
             
     }else{
+        /**
+         * @type {Discord.TextChannel}
+         */
+        let channel = await client.channels.fetch(element.joinChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.joinChannel)) return;
-        if(!client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
-            client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
+            channel.then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
         else{
             if(element.joinMessageContent.includes("<user>") || element.joinMessageContent.includes("<server>")){
-                const msg = element.joinMessageContent.split("<user>").join(` ${member} `).split("<server>").join(` **${member.guild.name}** `)
-                client.channels.fetch(element.joinChannel).then(channel => channel.send(msg));
+                const msg = element.joinMessageContent.split("<user>").join(` ${member} `).split("<server>").join(` **${member.guild.name}** `);
+                channel.then(channel => channel.send(msg));
             }else
-                client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + 
-                `${element.joinMessageContent}`));
+                channel.then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + `${element.joinMessageContent}`));
         }
     }
 });
@@ -726,15 +729,19 @@ client.on('guildMemberRemove', member => {
             member.guild.systemChannel.send(msg);
         }
     }else{
+        /**
+         * @type {Discord.TextChannel}
+         */
+         let channel = await client.channels.fetch(element.leaveChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
-        if(!client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !client.channels.fetch(element.joinChannel).permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
-            client.channels.fetch(element.leaveChannel).then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
+            channel.then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
         else{
             const msg = element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `)
-            client.channels.fetch(element.leaveChannel).then(channel => channel.send(msg));
+            channel.then(channel => channel.send(msg));
         }
     }  
 });
