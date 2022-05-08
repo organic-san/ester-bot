@@ -666,7 +666,7 @@ function saveData(reason) {
 }
 
 //#region 進入、送別觸發事件guildMemberAdd、guildMemberRemove
-client.on('guildMemberAdd', member => {
+client.on('guildMemberAdd', async member => {
     if(!isready) return;
     record.user.join++;
 
@@ -709,7 +709,7 @@ client.on('guildMemberAdd', member => {
     }
 });
 
-client.on('guildMemberRemove', member => {
+client.on('guildMemberRemove', async member => {
     record.user.leave++;
     if(!isready) return;
     if(member.id === client.user.id) return;
