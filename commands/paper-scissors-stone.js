@@ -40,7 +40,7 @@ module.exports = {
         }else if((mode === 0 && finger === 2)||(mode === 1 && finger === 0)||(mode === 2 && finger === 1)){
             message = message + '\[判定：成功🎉\]\n';
             switch(Math.floor(Math.random()*3)){
-                case 0: message = message + `${user} 不幸的落敗了。`; break;
+                case 0: message = message + `${interaction.user} 不幸的落敗了。`; break;
                 case 1: message = message + `下...下次一定會贏的！給我看著！`; break;
                 case 2: message = message + `為什麼我的手變成了${pss[finger]}！？`; break;
             }
