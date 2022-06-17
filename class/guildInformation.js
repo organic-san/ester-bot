@@ -284,7 +284,7 @@ class GuildInformation {
         if(!guild) return;
         switch (this.levelsReact) { //發送升等訊息
             case "MessageChannel":
-               channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`)
+               channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`).catch(() => {})
                     .catch(() => {
                         if(this.getUser(user.id).DM){
                             user.send(`您在 **${guild.name}** 的等級已升級到 **${this.getUser(user.id).levels}** 等了！`)
