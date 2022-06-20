@@ -301,7 +301,7 @@ class GuildInformation {
                 if (this.levelsReactChannel) {
                     if (guild.channels.cache.get(this.levelsReactChannel)) {
                         guild.channels.fetch(this.levelsReactChannel).then(channel => 
-                            channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`)
+                            channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`).catch(() => {})
                         );
                     }
                 }
