@@ -869,5 +869,5 @@ process.on('unhandledRejection', error => {
         if (err)
             console.log(err);
     });
-    client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`<@${process.env.OWNER1ID}>，ERROR`));
+    client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`<@${process.env.OWNER1ID}>，ERROR`)).catch(() => {});
 });
