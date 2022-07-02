@@ -860,3 +860,13 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 })
 //#endregion
 */
+
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+    let now = new Date(Date.now());
+    let filename = `./error/${now.getFullYear()}#${now.getMonth()}#${now.getDate()}-${now.getHours()}h${now.getMinutes()}m${now.getSeconds()}#${now.getMilliseconds()}s.txt`;
+    fs.writeFile(filename, JSON.stringify(error, null, '\t'), function (err){
+        if (err)
+            console.log(err);
+    });
+});

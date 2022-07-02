@@ -4,3 +4,5 @@ node_modules/
 /data/square
 /data/record.json
 /commands/test.js
+/error
+.vscode/
