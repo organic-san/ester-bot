@@ -106,13 +106,13 @@ module.exports = {
             const replyMessage = interaction.options.getString('reply-message');
             const mode = interaction.options.getInteger('mode');
             
-            if (triggerMessage.length > 20) 
-                return interaction.reply({content: `設定失敗: 文字過長，請縮短文字長度至20字以下。`, ephemeral: true});
+            if (triggerMessage.length > 50) 
+                return interaction.reply({content: `設定失敗: 文字過長，請縮短捕捉文字長度至50字以下。`, ephemeral: true});
             if(guildInformation.findReaction(triggerMessage) >= 0)
                 return interaction.reply({content: `設定失敗: 該關鍵字已被使用，請重新設定。`, ephemeral: true});
 
             if (replyMessage.length > 200)
-                return interaction.reply({content: `設定失敗: 文字過長，請縮短文字長度至200字以下。`, ephemeral: true});
+                return interaction.reply({content: `設定失敗: 文字過長，請縮短回覆文字長度至200字以下。`, ephemeral: true});
             //是否為指令
             
             guildInformation.addReaction(triggerMessage, replyMessage, mode);
