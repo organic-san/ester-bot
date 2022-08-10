@@ -462,13 +462,11 @@ client.on('messageCreate', async msg =>{
         switch(tempPrefix.toString()){
             case '0': 
             case '1': 
-                const text = msg.content.substring(prefix[0].Value.length).split(splitText);
-                switch(text[0]){
+                const tc = msg.content.substring(prefix[0].Value.length).split(splitText);
+                switch(tc[0]){
                     case 'emoji':
                         
-                        if (!msg.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
-                            return;
-                        }
+                        if (!msg.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) return;
                         const cmd = await msg.channel.send({
                             content: `自動表情符號轉換功能 目前狀態: ${guildInformation.getGuild(msg.guild.id).emojiTrans ? "開啟" : "停用"}`, 
                             components: [new Discord.MessageActionRow().addComponents([
@@ -864,7 +862,7 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 process.on('unhandledRejection', error => {
 	console.error('Unhandled promise rejection:', error);
     let now = new Date(Date.now());
-    let filename = `./error/${now.getFullYear()}#${now.getMonth()}#${now.getDate()}-${now.getHours()}h${now.getMinutes()}m${now.getSeconds()}#${now.getMilliseconds()}s.txt`;
+    let filename = `./error/${now.getFullYear()}#${now.getMonth()+1}#${now.getDate()}-${now.getHours()}h${now.getMinutes()}m${now.getSeconds()}#${now.getMilliseconds()}s.txt`;
     fs.writeFile(filename, JSON.stringify(error, null, '\t'), function (err){
         if (err)
             console.log(err);
