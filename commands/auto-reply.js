@@ -14,7 +14,7 @@ module.exports = {
             .setDescription('新增自動回應的內容，僅限具有管理伺服器權限人員操作')
             .addStringOption(opt =>
                 opt.setName('trigger-message')
-                .setDescription('在接收到這個句子後機器人會自動回應(上限20字)，例如: 快樂光線')
+                .setDescription('在接收到這個句子後機器人會自動回應(上限50字)，例如: 快樂光線')
                 .setRequired(true)
             ).addStringOption(opt => 
                 opt.setName('reply-message')
