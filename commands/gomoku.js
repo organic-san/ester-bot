@@ -33,6 +33,7 @@ module.exports = {
         const offensive = interaction.options.getNumber('offensive');
         //const kinjite = interaction.options.getBoolean('kinjite');
         if(user[1].bot) return interaction.reply("無法向機器人發送遊玩邀請。")
+        //TODO: AI五子棋玩家
         if(user[1].id === user[0].id) return interaction.reply("無法向自己發送遊玩邀請。")
         const help = 
             "五子棋 - 遊戲說明: \n" + 
@@ -230,6 +231,7 @@ module.exports = {
         collector.forEach(async (col, index) => {
             col.on('end', (c, r) => {
                 if(r !== "messageDelete" && r !== "end"){
+                    nowBoard = board.board();
                     message[index].edit({
                         content: 
                             `${gameInfo}\n\`\`\`\n${nowBoard}\n\`\`\`\n` + 
