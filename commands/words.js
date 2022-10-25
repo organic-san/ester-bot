@@ -7,7 +7,7 @@ module.exports = {
 		.setName('words')
         .setDescription('單字列表')
         .addSubcommand(opt =>
-            opt.setName('searth')
+            opt.setName('search')
             .setDescription('搜尋英文單字的中文涵意')
             .addStringOption(opt => 
                 opt.setName('word')
@@ -36,7 +36,7 @@ module.exports = {
      */
 	async execute(interaction) {
 
-        if (interaction.options.getSubcommand() === 'searth') {
+        if (interaction.options.getSubcommand() === 'search') {
 
             let word = interaction.options.getString('word');
             if(!word.match(/[A-Za-z]+/g)) return interaction.reply({content: "請輸入單字，並不要包含其他東西", ephemeral: true});
