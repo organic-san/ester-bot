@@ -66,7 +66,7 @@ module.exports = {
                 .addField('延遲', `${interaction.client.ws.ping}ms`, true)
                 .addField('統計', 
                     `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
-                    //`總接收訊息數 - ${record.messageCount} 條\n` +
+                    `總接收訊息數 - ${record.messageCount} 條\n` +
                     `遊戲/yacht-dice歷史累計最高分 - ${record.maxiumYachtScore} 分\n` +
                     `遊戲/yacht-dice本周累計最高分 - ${record.weeklyYachtScore} 分`)
                 .setThumbnail(interaction.client.user.displayAvatarURL({dynamic: true}))
