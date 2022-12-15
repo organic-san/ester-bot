@@ -28,6 +28,14 @@ module.exports = {
                 .setURL("https://discord.gg/hveXGk5Qmz")
         );
 
-        await interaction.reply({ content: '對我的功能有興趣嗎?我把能幫助你的資料都列出來了。', components: [row] });
+        const row2 = new Discord.MessageActionRow()
+        .addComponents(
+            new Discord.MessageButton()
+                .setLabel('使用與隱私權條款')
+                .setStyle('LINK')
+                .setURL("https://organic-san.gitbook.io/esterbot.help/others/privacy-rule")
+        )
+
+        await interaction.reply({ content: '對我的功能有興趣嗎?我把能幫助你的資料都列出來了。', components: [row, row2] });
     }
 };
