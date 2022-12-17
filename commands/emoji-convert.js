@@ -29,7 +29,7 @@ module.exports = {
         const isEmoji = [...message.matchAll(/:\w+:/g)];
         isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
 
-        if(isEmoji.length >= 0) 
+        if(isEmoji.length <= 0) 
             return interaction.reply({content: "訊息裡面沒有包含表情符號，我無法轉換!", ephemeral: true}).catch((err) => console.log(err));
 
         isEmoji.forEach((emoji, index) => {
