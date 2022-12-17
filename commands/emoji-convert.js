@@ -20,17 +20,17 @@ module.exports = {
 	async execute(interaction, guildInformation) {
         const message = interaction.options.getString('message');
         if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS)) 
-            interaction.reply({content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true}).catch((err) => console.log(err));
+            return interaction.reply({content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true}).catch((err) => console.log(err));
 
         if(interaction.channel.isThread())
-            interaction.reply({content: "沒有辦法在討論串中使用!", ephemeral: true}).catch((err) => console.log(err));
+            return interaction.reply({content: "沒有辦法在討論串中使用!", ephemeral: true}).catch((err) => console.log(err));
 
         const notEmoji = message.split(/:\w+:/g);
         const isEmoji = [...message.matchAll(/:\w+:/g)];
         isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
 
         if(isEmoji.length >= 0) 
-            interaction.reply({content: "訊息裡面沒有包含表情符號，我無法轉換!", ephemeral: true}).catch((err) => console.log(err));
+            return interaction.reply({content: "訊息裡面沒有包含表情符號，我無法轉換!", ephemeral: true}).catch((err) => console.log(err));
 
         isEmoji.forEach((emoji, index) => {
             if(!emoji) return;
