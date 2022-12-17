@@ -52,7 +52,7 @@ module.exports = {
         let words = [];
         for(let i = 0; i < notEmoji.length * 2 - 1; i++)
             i % 2 ? words.push(isEmoji[(i-1)/2]) : words.push(notEmoji[i/2]);
-        words = words.join("");
+        words = words.join("").split(" ").join("\n");
 
         const webhooks = await interaction.channel.fetchWebhooks();
         let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
