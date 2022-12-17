@@ -266,8 +266,7 @@ client.on('messageCreate', async msg =>{
 
         //#region 群外表情符號代為顯示功能
         if(msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
-        !msg.content.startsWith('b^'))
-        {
+        !msg.content.startsWith('e^')) {
             if(!msg.channel.isThread() && guildInformation.getGuild(msg.guild.id).emojiTrans){
                 const notEmoji = msg.content.split(/:\w+:/g);
                 const isEmoji = [...msg.content.matchAll(/:\w+:/g)];
