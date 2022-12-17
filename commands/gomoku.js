@@ -32,9 +32,9 @@ module.exports = {
         const user = [interaction.user, interaction.options.getUser('player')]
         const offensive = interaction.options.getNumber('offensive');
         //const kinjite = interaction.options.getBoolean('kinjite');
-        if(user[1].bot) return interaction.reply("無法向機器人發送遊玩邀請。")
+        if(user[1].bot) return interaction.reply("無法向機器人發送遊玩邀請。");
         //TODO: AI五子棋玩家
-        if(user[1].id === user[0].id) return interaction.reply("無法向自己發送遊玩邀請。")
+        if(user[1].id === user[0].id) return interaction.reply("無法向自己發送遊玩邀請。");
         const help = 
             "五子棋 - 遊戲說明: \n" + 
             "先連成五顆一線的玩家獲勝。\n" + 
@@ -146,9 +146,9 @@ module.exports = {
                 if(msg.author.id !== user[index].id) return;
                 collector[index].resetTimer(timelimit * 60 * 1000);
                 if(player !== (index + 1)) 
-                return msg.reply({content: '還沒有輪到你喔', allowedMentions: {repliedUser: false}});
+                    return msg.reply({content: '還沒有輪到你喔', allowedMentions: {repliedUser: false}});
                 if(!msg.content.slice(0, 1).match(/[A-Oa-o]/))
-                return msg.reply('請正確輸入棋盤上的位置，例如: "H8"或者"C6"(不需要引號)。');
+                    return msg.reply('請正確輸入棋盤上的位置，例如: "H8"或者"C6"(不需要引號)。');
                 if(!(parseInt(msg.content.slice(1)) <= 15 && parseInt(msg.content.slice(1)) >= 1))
                     return msg.reply('請正確輸入棋盤上的位置，例如: "H8"或者"C6"(不需要引號)。');
                 let putPosJudge = board.put(
