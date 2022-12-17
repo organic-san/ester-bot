@@ -51,7 +51,7 @@ module.exports = {
                     const webhooks = await interaction.channel.fetchWebhooks();
                     let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
                     if(!webhook) {
-                        msg.channel.createWebhook(interaction.member.displayName, {
+                        interaction.channel.createWebhook(interaction.member.displayName, {
                             avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
                         })
                             .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
