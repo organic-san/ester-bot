@@ -147,9 +147,9 @@ client.on('interactionCreate', async interaction => {
     record.interactionCount+=1;
     record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
     
-    if(!interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
-        !interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
-        !interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+    if(!interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
+        !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
+        !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
         return interaction.reply({content: "我不能在這裡說話!", ephemeral: true});
 
     //讀取指令ID，過濾無法執行(沒有檔案)的指令
@@ -265,7 +265,7 @@ client.on('messageCreate', async msg =>{
         //#endregion
 
         //#region 群外表情符號代為顯示功能
-        if(msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
+        if(msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
         !msg.content.startsWith('e^')) {
             if(!msg.channel.isThread() && guildInformation.getGuild(msg.guild.id).emojiTrans){
                 const notEmoji = msg.content.split(/:\w+:/g);
@@ -321,8 +321,8 @@ client.on('messageCreate', async msg =>{
         }
         //#endregion
 
-        if(!msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
-            !msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
+            !msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return console.log("isCommand: reactless");
 
         //#region 幫文字加上表情符號
@@ -405,7 +405,7 @@ client.on('messageCreate', async msg =>{
         }
         //#endregion
 
-        if(!msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) 
+        if(!msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES)) 
             return console.log("isCommand: sendless");
         
         //#region 前輟定義與發送isCommand確認、機器人自動回應
@@ -672,8 +672,8 @@ client.on('guildMemberAdd', async member => {
     if(!element.joinMessage) return;
     if(!element.joinChannel){
         if(!member.guild.systemChannel) return;
-        if(!member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
             member.guild.systemChannel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
@@ -691,8 +691,8 @@ client.on('guildMemberAdd', async member => {
          */
         let channel = await client.channels.fetch(element.joinChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.joinChannel)) return;
-        if(!channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.joinMessageContent)
             channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
@@ -716,8 +716,8 @@ client.on('guildMemberRemove', async member => {
     if(!element.leaveMessage) return;
     if(!element.leaveChannel){
         if(!member.guild.systemChannel) return;
-        if(!member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !member.guild.systemChannel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
             member.guild.systemChannel.send(`**${member.user.tag}** 已遠離我們而去。`);
@@ -730,8 +730,8 @@ client.on('guildMemberRemove', async member => {
          */
          let ch = await client.channels.fetch(element.leaveChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
-        if(!ch.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !ch.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!ch.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !ch.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return;
         if(!element.leaveMessageContent)
             ch.send(`**${member.user.tag}** 已遠離我們而去。`);
