@@ -38,6 +38,7 @@ module.exports = {
             
         collector.on('collect', async i => {
             if(i.user.id !== interaction.user.id) return i.reply({content: "想參與遊戲可以用/tic-tac-toe開始喔!", ephemeral: true});
+            await i.deferUpdate();
             playingArray[parseInt(i.customId) - 1] = 1;
             turn ++;
             const isWin = winCheck(playingArray);
@@ -76,13 +77,13 @@ module.exports = {
                 if(isWin !== 0) {
                     collector.stop();
                     let row = rowCreate(playingArray, true);
-                    await i.update({
+                    await i.editReply({
                         content: `遊戲已結束!\n贏家: ${interaction.client.user} / 玩家: ${interaction.user}\n難度: \`${difficultyKey}\``, 
                         components: row
                     });
                 } else {
                     let row = rowCreate(playingArray, false);
-                    await i.update({
+                    await i.editReply({
                         content: `來下一場圈圈叉叉吧!\n玩家: ${interaction.user}\n難度: \`${difficultyKey}\``, 
                         components: row
                     });
@@ -92,12 +93,12 @@ module.exports = {
                 collector.stop();
                 let row = rowCreate(playingArray, true);
                 if(isWin === 0){
-                    await i.update({
+                    await i.editReply({
                         content: `遊戲已結束!\n贏家: 沒有勝負(和局) / 玩家: ${interaction.user}\n難度: \`${difficultyKey}\``, 
                         components: row
                     });
                 }else{
-                    await i.update({
+                    await i.editReply({
                         content: `遊戲已結束!\n贏家: ${interaction.user} / 玩家: ${interaction.user}\n難度: \`${difficultyKey}\``, 
                         components: row
                     });

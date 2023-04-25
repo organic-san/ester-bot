@@ -34,6 +34,7 @@ module.exports = {
      * @param {dataRecord} record
      */
 	async execute(interaction, record) {
+        
         const userList = [interaction.user];
         for(let i=1; i<4; i++) {
             if(interaction.options.getUser(`player${i}`))
@@ -47,23 +48,30 @@ module.exports = {
                 if(userList[i].id === userList[j].id) return interaction.reply("請不要重複輸入遊玩的對象。");
             }
         }
+
+        /**
+         * @type {Discord.Message<boolean>}
+         */
+         let mainMsg = await interaction.reply({
+            content: "已經將說明與開始遊玩發送至你的私訊，請檢查私訊...", 
+            fetchReply: true
+        });
         
         const help = 
             "快艇骰子 - 遊戲說明: \n" + 
-            "這是一個用5顆骰子骰出各種組合，比較總和點數大小的遊戲。\n" + 
-            "骰骰子之後，依據當下的情況，填入適合的組合中，每一輪都要填一個組合。\n" +
-            "如果沒有合適的組合，也可以選擇重新骰骰子，至多兩次。\n" +
-            "直接點選骰子可以鎖定那顆骰子要不要重骰。\n" +
-            "直到全部的組合都填入完遊戲就結束，此時總和分最高的就是贏家。\n\n" +
-            "可以填入的組合有這些:\n" +
-            "一點~六點: 將該點數的所有骰子數字加總。如果這些組和加起來超過63分，將額外獲得35分。\n" +
-            "機會: 所有點數加總。\n" +
-            "葫蘆: 當有2個跟3個一樣的點數時，分數會是所有點數合計。\n" +
-            "鐵支: 如果有4個相同的點數，分數會是所有點數合計。\n" +
-            "小順: 4個連載一起的點數(例如1、2、3、4)，會獲得15分。\n" +
-            "大順: 5個連載一起的點數(例如1、2、3、4、5)，會獲得30分。\n" +
-            "快艇: 5個相同的點數，將獲得50分。\n" +
-            "組合分數與說明在遊戲過程中也可以查看。";
+            "遊戲使用五顆骰子遊玩，按下擲骰按鈕便可以骰出骰子。\n" + 
+            "在第一次骰出骰子後，可以有兩次機會選擇重新擲骰部分骰子。\n" + 
+            "背景為綠色的骰子代表會重骰，而灰色的骰子代表會保留，不會重新擲骰。\n" +
+            "最後根據骰子結果填入組合，而組合的分數總和決定最後的得分。\n\n" +
+            "📌 可以填入的組合有這些:\n" +
+            "一點~六點: 所有點數為該點的骰子點數總和。\n另外，當一點到六點的分數總和超過63分時，會額外獲得獎勵35分。\n" +
+            "機會: 所有骰子的點數總和。\n" +
+            "葫蘆: 當有三個與另外兩個相同的骰子時，獲得所有骰子的點數總和。\n" +
+            "鐵支: 當有四個點數相同的骰子時，獲得所有骰子的點數總和。\n" +
+            "小順: 骰子點數中包含1234、2345或3456時，獲得15分。\n" +
+            "大順: 骰子點數中包含12345或23456時，獲得30分。\n" +
+            "快艇:當有五顆點數相同的骰子時，獲得50分。\n\n" +
+            "✅ 組合分數與說明在遊戲過程中也可以查看。";
             
         const OKbutton = new Discord.MessageActionRow().addComponents([
             new Discord.MessageButton()
@@ -81,13 +89,6 @@ module.exports = {
         let msgUserList = "";
         for(let i=1; i<userList.length; i++) msgUserList += `${userList[i]} (${userList[i].tag})\n`;
 
-        /**
-         * @type {Discord.Message<boolean>}
-         */
-        let mainMsg = await interaction.reply({
-            content: "已經將說明與開始遊玩發送至你的私訊，請檢查私訊...", 
-            fetchReply: true
-        });
         //P1私訊發送
         let lc = "";
         if(userList.length > 1) lc = "\n\n點選下方按鈕，向以下玩家:\n" + msgUserList + "發送邀請。\n(注: 需要等所有玩家同意才會開始。)";
@@ -129,7 +130,7 @@ module.exports = {
             mainMsg.edit({
                 content: `正在等待其他玩家同意邀請...`, 
                 components: []
-            });
+            }).catch(() => {});
             
             for(let i=1; i<userList.length; i++) {
                 msgList[i] = await userList[i].send({
@@ -250,7 +251,8 @@ module.exports = {
 
         let gameA = gameInfoA(userList, turn);
         let gameB = gameInfoB(userList[nowUser], reDiceMax);
-        let content = `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${gameB}`;
+        let board = Yacht.textData(gameBoardList);
+        let content = `${gameA}\`\`\`\n${board}\n\`\`\`\n${gameB}`;
 
         msgList.forEach((msg, value) => {
             if(value === 0) {
@@ -280,7 +282,7 @@ module.exports = {
         let reDice = reDiceMax;
         collectorList.forEach(async collector => {
             collector.on('collect', async i => {
-                await i.deferUpdate();
+                await i.deferUpdate().catch(() => {});
                 collector.resetTimer({time: timelimit * 60 * 1000 });
                 if(i.customId === 'Dice' || i.customId.startsWith('dice')) {
                     if(i.customId === 'Dice') {
@@ -295,7 +297,7 @@ module.exports = {
                     gameA = gameInfoA(userList, turn);
                     gameB = gameInfoB(userList[nowUser], reDice);
                     content = 
-                        `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                        `${gameA}\`\`\`\n${board}\n\`\`\`` + 
                         `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${gameB}`;
 
                     msgList.forEach((msg, uid) => {
@@ -326,6 +328,7 @@ module.exports = {
                     announcement =
                         `${userList[nowUser]} (${userList[nowUser].tag}) ` + 
                         gameBoardList[nowUser].putPoint(yaku, diceResult) + '\n';
+                    board = Yacht.textData(gameBoardList);
 
                     if(turn > 12 && nowUser === (userList.length - 1)) {
                         content = `遊戲結束! 最終結果如下:\n\n`;
@@ -379,7 +382,7 @@ module.exports = {
                             winner += `\n⭐打平了本周的最高紀錄!`;
                         }
 
-                        content += `\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`\n${winner}\n`;
+                        content += `\`\`\`\n${board}\n\`\`\`\n${winner}\n`;
                         msgList.forEach((msg) => {
                             msg.edit({
                                 content: content + msgInfo,
@@ -389,7 +392,7 @@ module.exports = {
                         mainMsg.edit({
                             content: content,
                             components: []
-                        }).catch();
+                        }).catch(() => {});
                         collectorList.forEach(collector => {
                             collector.stop("end");
                         })
@@ -405,7 +408,7 @@ module.exports = {
                         gameA = gameInfoA(userList, turn);
                         gameB = gameInfoB(userList[nowUser], reDice);
                         content = 
-                            `${gameA}\`\`\`\n${Yacht.textData(gameBoardList)}\n\`\`\`` + 
+                            `${gameA}\`\`\`\n${board}\n\`\`\`` + 
                             `${yakuCheck(diceResult, gameBoardList[nowUser])}\n${announcement}${gameB}`;
                         msgList.forEach((msg, uid) => {
                             if(uid === nowUser) {
@@ -433,7 +436,7 @@ module.exports = {
                     gameA = gameInfoA(userList, turn);
                     gameB = gameInfoB(userList[nowUser], reDice);
                     let msgInfo = `結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
-                    content = "結果如下:\n" + gameA + "```\n" + Yacht.textData(gameBoardList) + "\n```\n";
+                    content = "結果如下:\n" + gameA + "```\n" + board + "\n```\n";
                     msgList.forEach((msg, uid) => {
                         if(uid === nowUser) {
                             msg.edit({

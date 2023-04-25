@@ -270,21 +270,27 @@ function levelsEmbed(guild, element, page, pageShowHax){
         .setColor(process.env.EMBEDCOLOR)                            
         .setThumbnail(`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.jpg`);
 
-    let ebmsgrk = "";
-    let ebmsgname = "";
-    let ebmsgexp = "";
+    //let ebmsgrk = "";
+    //let ebmsgname = "";
+    //let ebmsgexp = "";
+
+    let embedMessage = "";
     for(let i = page * pageShowHax; i < Math.min(page * pageShowHax + pageShowHax, element.users.length); i++){
-        let nametag = new String(element.users[i].tag);
-        if(nametag.length > 20){nametag = nametag.substring(0,20) + `...`;}
-        ebmsgrk += `#${i + 1} \n`;
-        ebmsgname += `${nametag}\n`
-        ebmsgexp += `${element.users[i].exp} exp. (lv.${element.users[i].levels})\n`;
+        //let nametag = new String(element.users[i].tag);
+        //if(nametag.length > 20){nametag = nametag.substring(0,20) + `...`;}
+        //ebmsgrk += `#${i + 1} \n`;
+        //ebmsgname += `${nametag}\n`
+        //ebmsgexp += `${element.users[i].exp} exp. (lv.${element.users[i].levels})\n`;
+
+        embedMessage += `#${i + 1}: <@${element.users[i].id}> with ${element.users[i].exp} exp. (lv.${element.users[i].levels})\n`;
     }
     levelembed.setDescription(`#${page * pageShowHax + 1} ~ #${Math.min(page * pageShowHax + pageShowHax, element.users.length)}` + 
         ` / #${element.users.length}`);
-    levelembed.addField("rank", ebmsgrk, true);
-    levelembed.addField("name", ebmsgname, true);
-    levelembed.addField("exp.", ebmsgexp, true);
+    //levelembed.addField("rank", ebmsgrk, true);
+    //levelembed.addField("name", ebmsgname, true);
+    //levelembed.addField("exp.", ebmsgexp, true);
+
+    levelembed.addField("rank / user name / exp.", embedMessage, true);
 
     return levelembed;
 }

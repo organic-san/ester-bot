@@ -147,8 +147,9 @@ client.on('interactionCreate', async interaction => {
     record.interactionCount+=1;
     record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
     
-    if(!interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
-        !interaction.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.ADD_REACTIONS))
+    if(!interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
+        !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
+        !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
         return interaction.reply({content: "我不能在這裡說話!", ephemeral: true});
 
     //讀取指令ID，過濾無法執行(沒有檔案)的指令
@@ -177,9 +178,9 @@ client.on('interactionCreate', async interaction => {
     }
     //#endregion    
     
-    if(!musicList.has(interaction.guild.id)){
-        musicList.set(interaction.guild.id, new musicbase.MusicList(interaction.client.user, interaction.guild, []));
-    }
+    //if(!musicList.has(interaction.guild.id)){
+    //    musicList.set(interaction.guild.id, new musicbase.MusicList(interaction.client.user, interaction.guild, []));
+    //}
 
 	try {
         if(command.tag === "interaction") await command.execute(interaction);
@@ -188,13 +189,12 @@ client.on('interactionCreate', async interaction => {
         if(command.tag === "guildInfoRecord") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id), record);
         if(command.tag === "record") await command.execute(interaction, record);
 	} catch (error) {
-        //console.log("err1")
 		console.error(error);
         try {
             if(interaction.replied) 
-                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] });
+                interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] })//.catch(() => {});
             else
-                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true });
+                interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true })//.catch(() => {});
         }catch(err) {
             console.log(err);
         }
@@ -210,6 +210,7 @@ client.on('messageCreate', async msg =>{
         if(!msg.guild || !msg.member) return; //訊息內不存在guild元素 = 非群組消息(私聊)
         if(msg.channel.type === "DM") return; 
         if(msg.webhookId) return;
+        
 
         if(!guildInformation.has(msg.guild.id)){
             const filename = process.env.ACID_FILEROUTE;
@@ -259,15 +260,14 @@ client.on('messageCreate', async msg =>{
                 element.getUser(msg.author.id).tag = msg.author.tag;
                 const lvup = element.getUser(msg.author.id).addexp(Math.floor(Math.random() * 6) + 10, true);
                 if(lvup) element.sendLevelsUpMessage(msg.author, msg.channel, msg.guild, defpre);
-            }
+            } 
         }
         //#endregion
 
         //#region 群外表情符號代為顯示功能
-        if(msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
-        !msg.content.startsWith('b^'))
-        {
-            if(!msg.channel.isThread()){
+        if(msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
+        !msg.content.startsWith('e^')) {
+            if(!msg.channel.isThread() && guildInformation.getGuild(msg.guild.id).emojiTrans){
                 const notEmoji = msg.content.split(/:\w+:/g);
                 const isEmoji = [...msg.content.matchAll(/:\w+:/g)];
                 isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
@@ -321,8 +321,8 @@ client.on('messageCreate', async msg =>{
         }
         //#endregion
 
-        if(!msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
-            !msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
+            !msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
             return console.log("isCommand: reactless");
 
         //#region 幫文字加上表情符號
@@ -405,7 +405,7 @@ client.on('messageCreate', async msg =>{
         }
         //#endregion
 
-        if(!msg.channel.permissionsFor(client.user).has(Discord.Permissions.FLAGS.SEND_MESSAGES)) 
+        if(!msg.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES)) 
             return console.log("isCommand: sendless");
         
         //#region 前輟定義與發送isCommand確認、機器人自動回應
@@ -459,23 +459,59 @@ client.on('messageCreate', async msg =>{
         //實作
         //以下預計廢除
         switch(tempPrefix.toString()){
+            case '0': 
+            case '1': 
+                const tc = msg.content.substring(prefix[0].Value.length).split(splitText);
+                switch(tc[0]){
+                    case 'emoji':
+                        
+                        if (!msg.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) return;
+                        const cmd = await msg.channel.send({
+                            content: `自動表情符號轉換功能 目前狀態: ${guildInformation.getGuild(msg.guild.id).emojiTrans ? "開啟" : "停用"}`, 
+                            components: [new Discord.MessageActionRow().addComponents([
+                                    new Discord.MessageButton()
+                                        .setLabel(guildInformation.getGuild(msg.guild.id).emojiTrans ? "停用" : "開啟")
+                                        .setCustomId('1')
+                                        .setStyle('SECONDARY')
+                                    
+                                ])]
+                        });
+                        const mMsgfilter = async (i) => {
+                            await i.deferUpdate();
+                            return i.customId === '1';
+                        };
+                        let p1StartBtn = await cmd.awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+                            .catch(() => {});
+                        if (!p1StartBtn) {
+                            return cmd.edit({content: "由於逾時而取消設定。", components: []}).catch(() => {});
+                        } else {
+                            guildInformation.getGuild(msg.guild.id).emojiTrans = !guildInformation.getGuild(msg.guild.id).emojiTrans;
+                            cmd.edit({
+                                content: `已設定完成: 自動表情符號轉換功能 目前狀態: ${guildInformation.getGuild(msg.guild.id).emojiTrans ? "開啟" : "停用"}。`, 
+                                components: []
+                            }).catch(() => {});
+                        }
+                        break;
+                }
+                break;
+
             case '6':
             case '7':
                 //#region 有機酸專用指令(全)
                 if(msg.author.id !== process.env.OWNER1ID && msg.author.id !== process.env.OWNER2ID){return;}
-                const text = msg.content.substring(prefix[6].Value.length).split(splitText);
+                const word = msg.content.substring(prefix[6].Value.length).split(splitText);
                 if(msg.deletable){msg.delete().catch(console.error);}
-                switch(text[0]){
+                switch(word[0]){
                     case "CTS": //channel ID to send
                     case "cts":
                     case 't':
                         //#region 指定頻道發言
-                        if(!text[1]) return;
-                        if(!Number.isNaN(parseInt(text[1]))){
-                            const channelt = textCommand.ChannelResolveFromMention(client, text[1]);
-                            channelt.send(msg.content.substring(prefix[6].Value.length + text[0].length + text[1].length + 2))
+                        if(!word[1]) return;
+                        if(!Number.isNaN(parseInt(word[1]))){
+                            const channelt = textCommand.ChannelResolveFromMention(client, word[1]);
+                            channelt.send(msg.content.substring(prefix[6].Value.length + word[0].length + word[1].length + 2))
                         }else{
-                            msg.channel.send(msg.content.substring(prefix[6].Value.length + text[0].length + 1));
+                            msg.channel.send(msg.content.substring(prefix[6].Value.length + word[0].length + 1));
                         }
                         break;
                     
@@ -483,8 +519,8 @@ client.on('messageCreate', async msg =>{
                     case "mtd":
                     case 'd':
                         //#region 指定言論刪除
-                        if(!text[1]) return;
-                        msg.channel.messages.fetch(text[1]).then(async message => 
+                        if(!word[1]) return;
+                        msg.channel.messages.fetch(word[1]).then(async message => 
                             {
                                 if(message.deletable){
                                     try{
@@ -501,11 +537,11 @@ client.on('messageCreate', async msg =>{
                     case "CMTD": //Channel Message To Delete
                     case "cmtd":
                     case 'c':
-                        if(!text[1]) return;
-                        if(!text[2]) return;
+                        if(!word[1]) return;
+                        if(!word[2]) return;
                         //#region 指定頻道->指定言論刪除
-                        const channelc = textCommand.ChannelResolveFromMention(client, text[1])
-                        channelc.messages.fetch(text[2]).then(message => {
+                        const channelc = textCommand.ChannelResolveFromMention(client, word[1])
+                        channelc.messages.fetch(word[2]).then(message => {
                                 if(message.deletable){
                                     try{
                                         message.delete();
@@ -528,8 +564,8 @@ client.on('messageCreate', async msg =>{
                         break;
 
                     case 'clm':
-                        if(text[1]) {
-                            const message = await msg.channel.messages.fetch(text[1]);
+                        if(word[1]) {
+                            const message = await msg.channel.messages.fetch(word[1]);
                             console.log(message);
                         }
                         break;
@@ -558,9 +594,9 @@ client.on('messageCreate', async msg =>{
                         break;
 
                     case 'addexp':
-                        if(!text[1]) return;
-                        if(Number.isNaN(parseInt(text[1]))) return;
-                        const lvup = element.getUser(msg.author.id).addexp(parseInt(text[1]), true, true);
+                        if(!word[1]) return;
+                        if(Number.isNaN(parseInt(word[1]))) return;
+                        const lvup = element.getUser(msg.author.id).addexp(parseInt(word[1]), true, true);
                         if(lvup) element.sendLevelsUpMessage(msg.author, msg.channel, msg.guild, defpre);
                         break;
 
@@ -627,7 +663,7 @@ function saveData(reason) {
 }
 
 //#region 進入、送別觸發事件guildMemberAdd、guildMemberRemove
-client.on('guildMemberAdd', member => {
+client.on('guildMemberAdd', async member => {
     if(!isready) return;
     record.user.join++;
 
@@ -636,6 +672,9 @@ client.on('guildMemberAdd', member => {
     if(!element.joinMessage) return;
     if(!element.joinChannel){
         if(!member.guild.systemChannel) return;
+        if(!member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.joinMessageContent)
             member.guild.systemChannel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
         else{
@@ -647,42 +686,57 @@ client.on('guildMemberAdd', member => {
         }
             
     }else{
+        /**
+         * @type {Discord.TextChannel}
+         */
+        let channel = await client.channels.fetch(element.joinChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.joinChannel)) return;
+        if(!channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.joinMessageContent)
-            client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`));
+            channel.send(`${member} ，歡迎來到 **${member.guild.name}** !`);
         else{
             if(element.joinMessageContent.includes("<user>") || element.joinMessageContent.includes("<server>")){
-                const msg = element.joinMessageContent.split("<user>").join(` ${member} `).split("<server>").join(` **${member.guild.name}** `)
-                client.channels.fetch(element.joinChannel).then(channel => channel.send(msg));
+                const msg = element.joinMessageContent.split("<user>").join(` ${member} `).split("<server>").join(` **${member.guild.name}** `);
+                channel.send(msg);
             }else
-                client.channels.fetch(element.joinChannel).then(channel => channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + 
-                `${element.joinMessageContent}`));
+                channel.send(`${member} ，歡迎來到 **${member.guild.name}** !\n` + `${element.joinMessageContent}`);
         }
-    }  
+    }
 });
 
-client.on('guildMemberRemove', member => {
-    if(!isready) return;
+client.on('guildMemberRemove', async member => {
     record.user.leave++;
+    if(!isready) return;
+    if(member.id === client.user.id) return;
 
     const element = guildInformation.getGuild(member.guild.id);
     if(!element) return;
     if(!element.leaveMessage) return;
     if(!element.leaveChannel){
         if(!member.guild.systemChannel) return;
+        if(!member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !member.guild.systemChannel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.leaveMessageContent)
             member.guild.systemChannel.send(`**${member.user.tag}** 已遠離我們而去。`);
         else{
-            const msg = element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `)
-            member.guild.systemChannel.send(msg);
+            member.guild.systemChannel.send(element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `));
         }
     }else{
+        /**
+         * @type {Discord.TextChannel}
+         */
+         let ch = await client.channels.fetch(element.leaveChannel);
         if(!textCommand.ChannelResolveFromMention(client, element.leaveChannel)) return;
+        if(!ch.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) ||
+            !ch.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
+            return;
         if(!element.leaveMessageContent)
-            client.channels.fetch(element.leaveChannel).then(channel => channel.send(`**${member.user.tag}** 已遠離我們而去。`));
+            ch.send(`**${member.user.tag}** 已遠離我們而去。`);
         else{
-            const msg = element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `)
-            client.channels.fetch(element.leaveChannel).then(channel => channel.send(msg));
+            ch.send(element.leaveMessageContent.split("<user>").join(` **${member.user.tag}** `).split("<server>").join(` **${member.guild.name}** `));
         }
     }  
 });
@@ -803,3 +857,14 @@ client.on('messageUpdate', async (oldMessage, newMessage) => {
 })
 //#endregion
 */
+
+process.on('unhandledRejection', error => {
+	console.error('Unhandled promise rejection:', error);
+    let now = new Date(Date.now());
+    let filename = `./error/${now.getFullYear()}#${now.getMonth()+1}#${now.getDate()}-${now.getHours()}h${now.getMinutes()}m${now.getSeconds()}#${now.getMilliseconds()}s.txt`;
+    fs.writeFile(filename, JSON.stringify(error, null, '\t'), function (err){
+        if (err)
+            console.log(err);
+    });
+    client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`<@${process.env.OWNER1ID}>，ERROR`)).catch(() => {});
+});

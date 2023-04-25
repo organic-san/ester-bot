@@ -115,6 +115,7 @@ class GuildInformation {
         this.levelsReact = "MessageChannel";
         this.levelsReactChannel = "";
         this.anonymous = true;
+        this.emojiTrans = true;
         this.users = users;
         this.reaction = [];
         this.reactionsCount = 1;
@@ -140,6 +141,7 @@ class GuildInformation {
         newGI.joinedAt = obj.joinedAt ?? new Date(Date.now());
         newGI.recordAt = obj.recordAt ?? new Date(Date.now());
         newGI.anonymous = obj.anonymous ?? true;
+        newGI.emojiTrans = obj.emojiTrans ?? true;
         newGI.reaction = obj.reaction ?? [];
         newGI.reactionsCount = obj.reactionsCount ?? 1;
         obj.users.forEach(user => {
@@ -282,7 +284,7 @@ class GuildInformation {
         if(!guild) return;
         switch (this.levelsReact) { //發送升等訊息
             case "MessageChannel":
-               channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`)
+               channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`).catch(() => {})
                     .catch(() => {
                         if(this.getUser(user.id).DM){
                             user.send(`您在 **${guild.name}** 的等級已升級到 **${this.getUser(user.id).levels}** 等了！`)
@@ -299,7 +301,7 @@ class GuildInformation {
                 if (this.levelsReactChannel) {
                     if (guild.channels.cache.get(this.levelsReactChannel)) {
                         guild.channels.fetch(this.levelsReactChannel).then(channel => 
-                            channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`)
+                            channel.send(`${user} 升級到 **${this.getUser(user.id).levels}** 等了！`).catch(() => {})
                         );
                     }
                 }
