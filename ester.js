@@ -210,7 +210,6 @@ client.on('messageCreate', async msg =>{
         if(!msg.guild || !msg.member) return; //訊息內不存在guild元素 = 非群組消息(私聊)
         if(msg.channel.type === "DM") return; 
         if(msg.webhookId) return;
-        
 
         if(!guildInformation.has(msg.guild.id)){
             const filename = process.env.ACID_FILEROUTE;
@@ -509,9 +508,17 @@ client.on('messageCreate', async msg =>{
                         if(!word[1]) return;
                         if(!Number.isNaN(parseInt(word[1]))){
                             const channelt = textCommand.ChannelResolveFromMention(client, word[1]);
-                            channelt.send(msg.content.substring(prefix[6].Value.length + word[0].length + word[1].length + 2))
+                            channelt.send(
+                                msg.content.substring(prefix[6].Value.length + word[0].length + word[1].length + 2)
+                                .split(`<@${client.user.id}>`).join("")
+                                .replace(/@\\everyone/, '@everyone')
+                            );
                         }else{
-                            msg.channel.send(msg.content.substring(prefix[6].Value.length + word[0].length + 1));
+                            msg.channel.send(
+                                msg.content.substring(prefix[6].Value.length + word[0].length + 1)
+                                .split(`<@${client.user.id}>`).join("")
+                                .replace(/@\\everyone/, '@everyone')
+                            );
                         }
                         break;
                     
@@ -609,7 +616,7 @@ client.on('messageCreate', async msg =>{
                     
                     case "SendInformationToEveryOwner": //Send Information To Every Owner
                         //#region 向伺服器擁有者發言
-                        const chance = "YES";
+                        const chance = "NO";
                         if(chance === "YES"){
                             guildInformation.guilds.forEach(async (element) => {
                                 const ownerId = client.guilds.cache.get(element.id).ownerId;
