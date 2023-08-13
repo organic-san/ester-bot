@@ -109,7 +109,7 @@ client.on('ready', () =>{
     const announcement = async (chid) => {
         const embed = new Discord.MessageEmbed()
                 .setColor(process.env.EMBEDCOLOR)
-                .setTitle(`每日 ${client.user.id} 更新日報`)
+                .setTitle(`每日 ${client.user.tag} 更新日報`)
                 .addField('製作者', (await client.users.fetch(process.env.OWNER1ID)).tag)
                 .addField('用戶ID', client.user.id, true)
                 .addField('總使用者數', `${client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
