@@ -74,9 +74,13 @@ client.on('ready', () =>{
     });
     setTimeout(() => {
         console.log(`設定成功: ${new Date()}`);
-        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`));
+        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
+            channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`)
+        );
         if(client.user.id !== process.env.BOT_ID_ACIDTEST)
-            client.channels.fetch(process.env.CHECK_CH_ID2).then(channel => channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`));
+            client.channels.fetch(process.env.CHECK_CH_ID2).then(channel => 
+                channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`)
+            );
             isready = true;
         }, parseInt(process.env.LOADTIME) * 1000);
     setInterval(() => {
@@ -97,8 +101,35 @@ client.on('ready', () =>{
         });
         let time = new Date();
         console.log(`Saved in ${time}`);
-        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => channel.send(`自動存檔: <t:${Math.floor(Date.now() / 1000)}:F>`)).catch(err => console.log(err));
+        client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
+            channel.send(`自動存檔: <t:${Math.floor(Date.now() / 1000)}:F>`)).catch(err => console.log(err)
+        );
     },10 * 60 * 1000)
+
+    const announcement = async (chid) => {
+        const embed = new Discord.MessageEmbed()
+                .setColor(process.env.EMBEDCOLOR)
+                .setTitle(`每日 ${client.user.id} 更新日報`)
+                .addField('製作者', (await client.users.fetch(process.env.OWNER1ID)).tag)
+                .addField('用戶ID', interaction.client.user.id, true)
+                .addField('總使用者數', `${client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
+                .addField('參與伺服器數量', client.guilds.cache.size.toString(), true)
+                .addField('統計', 
+                    `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
+                    `總接收訊息數 - ${record.messageCount} 條\n` +
+                    `遊戲/yacht-dice歷史累計最高分 - ${record.maxiumYachtScore} 分\n` +
+                    `遊戲/yacht-dice本周累計最高分 - ${record.weeklyYachtScore} 分`)
+                .setTimestamp()
+                .setFooter({text: client.user.id, iconURL: client.user.displayAvatarURL({dynamic: true})})
+        client.channels.fetch(chid).then(channel => 
+            channel.send({embeds: [embed]}).catch(err => console.log(err))
+        );
+    };
+
+    announcement(process.env.DAILYINFOCH_ID);
+    setInterval(() => {
+        announcement(process.env.DAILYINFOCH_ID);
+    }, 24 * 60 * 60 * 1000);
 });
 //#endregion
 
