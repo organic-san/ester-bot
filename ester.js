@@ -204,12 +204,9 @@ client.on('ready', () =>{
             } else if(level === 2) {
                 const lastDate = new Date(record.lastHugeEarthquakeTime || "2023-08-01T00:00:00");
                 const newDate = new Date(i.eqTime);
-                console.log(`${lastDate}, ${newDate}`);
                 if(newDate - lastDate > 0) {
                     newDate.setSeconds(newDate.getSeconds() + 1);
-                    console.log(newDate);
                     const newDateStr = new Date(newDate.getTime() - (newDate.getTimezoneOffset() * 60000)).toISOString().substring(0, 19);
-                    console.log(newDateStr);
                     record.lastHugeEarthquakeTime = newDateStr;
                 }
             }
