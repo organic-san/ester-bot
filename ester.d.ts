@@ -6,6 +6,8 @@ interface  dataRecord {
     maxiumYachtScore: number;
     weeklyYachtScore: number;
     weeklyYachtScoreWeek: number;
+    lastSmallEarthquakeTime: string;
+    lastHugeEarthquakeTime: string;
     interaction: {
         account: number;
         auto: number;

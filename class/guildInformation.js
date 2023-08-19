@@ -119,6 +119,8 @@ class GuildInformation {
         this.users = users;
         this.reaction = [];
         this.reactionsCount = 1;
+        this.earthquakeAnnounceChannel = "";
+        this.earthquakeAnnounceLevel = 0;
     }
 
     /**
@@ -144,6 +146,8 @@ class GuildInformation {
         newGI.emojiTrans = obj.emojiTrans ?? true;
         newGI.reaction = obj.reaction ?? [];
         newGI.reactionsCount = obj.reactionsCount ?? 1;
+        newGI.earthquakeAnnounceChannel = obj.earthquakeAnnounceChannel ?? "";
+        newGI.earthquakeAnnounceLevel = obj.earthquakeAnnounceLevel ?? 0;
         obj.users.forEach(user => {
             const newUser = new User(user.id ?? 0, user.tag ?? "undefined#0000");
             newUser.DM = user.DM ?? true;

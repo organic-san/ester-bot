@@ -7,6 +7,7 @@ const musicbase = require('./class/musicList');
 const guild = require('./class/guildInformation');
 
 const fs = require('fs');
+const fetch = require('node-fetch');
 require('dotenv').config();
 
 const options = {
@@ -51,6 +52,7 @@ client.on('ready', () =>{
     console.log(`登入成功: ${client.user.tag} 於 ${new Date()}`);
     client.user.setActivity('/help'/*, { type: 'PLAYING' }*/);
 
+    //資料讀取
     fs.readFile("./data/guildInfo/guildlist.json", (err,word) => {
         if(err) throw err;
         var parseJsonlist = JSON.parse(word);
@@ -72,6 +74,8 @@ client.on('ready', () =>{
             });
         });
     });
+
+    //上線等待處理
     setTimeout(() => {
         console.log(`設定成功: ${new Date()}`);
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
@@ -82,7 +86,9 @@ client.on('ready', () =>{
                 channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`)
             );
             isready = true;
-        }, parseInt(process.env.LOADTIME) * 1000);
+    }, parseInt(process.env.LOADTIME) * 1000);
+
+    //檔案存檔處理
     setInterval(() => {
         fs.writeFile("./data/guildInfo/guildlist.json", JSON.stringify(guildInformation.guildList, null, '\t'), function (err){
             if (err)
@@ -104,32 +110,126 @@ client.on('ready', () =>{
         client.channels.fetch(process.env.CHECK_CH_ID).then(channel => 
             channel.send(`自動存檔: <t:${Math.floor(Date.now() / 1000)}:F>`)).catch(err => console.log(err)
         );
-    },10 * 60 * 1000)
+    },5 * 60 * 1000)
 
-    const announcement = async (chid) => {
-        const embed = new Discord.MessageEmbed()
-                .setColor(process.env.EMBEDCOLOR)
-                .setTitle(`每日 ${client.user.tag} 更新日報`)
-                .addField('製作者', (await client.users.fetch(process.env.OWNER1ID)).tag)
-                .addField('用戶ID', client.user.id, true)
-                .addField('總使用者數', `${client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
-                .addField('參與伺服器數量', client.guilds.cache.size.toString(), true)
-                .addField('統計', 
-                    `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
-                    `總接收訊息數 - ${record.messageCount} 條\n` +
-                    `遊戲/yacht-dice歷史累計最高分 - ${record.maxiumYachtScore} 分\n` +
-                    `遊戲/yacht-dice本周累計最高分 - ${record.weeklyYachtScore} 分`)
-                .setTimestamp()
-                .setFooter({text: client.user.id, iconURL: client.user.displayAvatarURL({dynamic: true})})
-        client.channels.fetch(chid).then(channel => 
-            channel.send({embeds: [embed]}).catch(err => console.log(err))
-        );
+    //每日日報處理
+    if(client.user.id != process.env.BOT_ID_ACIDTEST){
+        const announcement = async (chid) => {
+            const embed = new Discord.MessageEmbed()
+                    .setColor(process.env.EMBEDCOLOR)
+                    .setTitle(`每日 ${client.user.tag} 更新日報`)
+                    .addField('製作者', (await client.users.fetch(process.env.OWNER1ID)).tag)
+                    .addField('用戶ID', client.user.id, true)
+                    .addField('總使用者數', `${client.guilds.cache.map(guild => guild.memberCount).reduce((p, c) => p + c)} 人`, true)
+                    .addField('參與伺服器數量', client.guilds.cache.size.toString(), true)
+                    .addField('統計', 
+                        `斜線指令總使用次數 - ${record.interactionCount} 次\n` +
+                        `總接收訊息數 - ${record.messageCount} 條\n` +
+                        `遊戲/yacht-dice歷史累計最高分 - ${record.maxiumYachtScore} 分\n` +
+                        `遊戲/yacht-dice本周累計最高分 - ${record.weeklyYachtScore} 分`)
+                    .setTimestamp()
+                    .setFooter({text: client.user.id, iconURL: client.user.displayAvatarURL({dynamic: true})})
+            client.channels.fetch(chid).then(channel => 
+                channel.send({embeds: [embed]}).catch(err => console.log(err))
+            );
+        };
+        announcement(process.env.DAILYINFOCH_ID);
+        setInterval(() => {
+            announcement(process.env.DAILYINFOCH_ID);
+        }, 24 * 60 * 60 * 1000);
+    }
+
+    //地震消息處理
+    const earthquake = async (url) => {
+        try {
+            const response = await fetch(url);
+            const dataJson = await response.json();
+            const eq = dataJson.records.Earthquake;
+            const msgList = [];
+    
+            for (const i of eq) {
+                const loc = i.EarthquakeInfo.Epicenter.Location;
+                const val = i.EarthquakeInfo.EarthquakeMagnitude.MagnitudeValue;
+                const dep = i.EarthquakeInfo.FocalDepth;
+                const eqTime = i.EarthquakeInfo.OriginTime;
+                const img = i.ReportImageURI;
+                const web = i.Web;
+                const id = i.EarthquakeNo;
+                const conc = i.ReportContent;
+                const msg = {loc, val, dep, eqTime, web, img, conc, id}
+
+                msgList.push(msg);
+                console.log("捕捉到地震消息: " + new Date(eqTime));
+            }
+            return { msgList };
+        } catch (error) {
+            console.log(error);
+            return { msgList: [], imgList: [] };
+        }
     };
 
-    announcement(process.env.DAILYINFOCH_ID);
-    setInterval(() => {
-        announcement(process.env.DAILYINFOCH_ID);
-    }, 24 * 60 * 60 * 1000);
+    const announcement = async (msgList, level) => {
+        for(i of msgList) {
+            const embed = new Discord.MessageEmbed()
+                .setColor(process.env.EMBEDCOLOR)
+                .setTitle(`🚨 地震警報 🚨`)
+                .setURL(i.web)
+                .setDescription(i.conc)
+                .addField('📍 震央位置', `${i.loc}`, false)
+                .addField('⏰ 發生時間', `${i.eqTime}`, true)
+                .addField('💥 芮氏規模', `${i.val}`, true)
+                .addField('🌍 深度', `${i.dep} 公里`, true)
+                .addField('_ _', "注意地震安全，保持冷靜勿驚慌，並做好防震準備。")
+                .setImage(i.img)
+                .setTimestamp()
+                .setFooter({ text: `ester bot 地震通知 | 資料來源: 交通部中央氣象局`, iconURL: client.user.displayAvatarURL({dynamic: true})})
+
+            for (const gi of guildInformation.guilds) {
+                if(gi.earthquakeAnnounceLevel) {
+                    if(level >= gi.earthquakeAnnounceLevel)
+                    client.channels.fetch(gi.earthquakeAnnounceChannel).then(channel => 
+                        channel.send({ embeds: [embed] }).catch(err => console.log(err))
+                    );
+                }
+            }
+
+            if(level === 1) {
+                const lastDate = new Date(record.lastSmallEarthquakeTime || "2023-08-01T00:00:00");
+                const newDate = new Date(i.eqTime);
+                if(newDate - lastDate > 0) {
+                    newDate.setSeconds(newDate.getSeconds() + 1);
+                    const newDateStr = new Date(newDate.getTime() - (newDate.getTimezoneOffset() * 60000)).toISOString().substring(0, 19);
+                    record.lastSmallEarthquakeTime = newDateStr;
+                }
+            } else if(level === 2) {
+                const lastDate = new Date(record.lastHugeEarthquakeTime || "2023-08-01T00:00:00");
+                const newDate = new Date(i.eqTime);
+                console.log(`${lastDate}, ${newDate}`);
+                if(newDate - lastDate > 0) {
+                    newDate.setSeconds(newDate.getSeconds() + 1);
+                    console.log(newDate);
+                    const newDateStr = new Date(newDate.getTime() - (newDate.getTimezoneOffset() * 60000)).toISOString().substring(0, 19);
+                    console.log(newDateStr);
+                    record.lastHugeEarthquakeTime = newDateStr;
+                }
+            }
+
+            
+        }
+    }
+
+    setInterval(async () => {
+        console.log("偵測地震")
+        //小區域有感地震報告
+        let {msgList} = await earthquake(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization=${process.env.CWBKEY}` + 
+            `&AreaName=&StationName=A&timeFrom=${record.lastSmallEarthquakeTime || "2023-08-01T00:00:00"}`);
+        announcement(msgList, 1);
+        //顯著有感地震報告
+        ({msgList} = await earthquake(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=${process.env.CWBKEY}` + 
+            `&AreaName=&StationName=A&timeFrom=${record.lastHugeEarthquakeTime || "2023-08-01T00:00:00"}`));
+        announcement(msgList, 2);
+    }, 30 * 1000);
+    
 });
 //#endregion
 
@@ -174,10 +274,12 @@ client.on('interactionCreate', async interaction => {
     }
     guildInformation.updateGuild(interaction.guild);
 
+    //紀錄資料更新
     if (!interaction.isCommand()) return;
     record.interactionCount+=1;
-    record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)]+=1;
+    record.interaction[interaction.commandName.slice(0, interaction.commandName.includes("-") ? interaction.commandName.indexOf("-") : interaction.commandName.length)] += 1;
     
+    //權限判斷
     if(!interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.SEND_MESSAGES) || 
         !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.ADD_REACTIONS) ||
         !interaction.channel.permissionsFor(client.user)?.has(Discord.Permissions.FLAGS.VIEW_CHANNEL))
@@ -213,6 +315,7 @@ client.on('interactionCreate', async interaction => {
     //    musicList.set(interaction.guild.id, new musicbase.MusicList(interaction.client.user, interaction.guild, []));
     //}
 
+    //斜線指令處理
 	try {
         if(command.tag === "interaction") await command.execute(interaction);
 		if(command.tag === "guildInfo") await command.execute(interaction, guildInformation.getGuild(interaction.guild.id));
