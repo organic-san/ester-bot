@@ -18,7 +18,7 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 for (const file of commandFiles) {
     // TODO: 暫時措施
 	// const command = require(`./commands/${file}`);
-	// DCAccess.setCommand(command.data.name, command);
+	// DCAccess.setCommand(command);
 }
 
 let isready = false;
@@ -108,6 +108,7 @@ client.on('messageCreate', async msg =>{
     // 等級更新
     const guildUser = await guildData.getUser(msg.author.id);
     guildUser.addexp(textCommand.expAddFormula(), msg.channel);
+    guildUser.increaseMsg();
     console.log("訊息接收");
 });
 //#endregion

@@ -63,6 +63,11 @@ module.exports = class User {
         return process.env.USERTABLE + this.#guildId;
     }
 
+    increaseMsg() {
+        const db = DB.getConnection();
+        db.prepare(`UPDATE ${this.#DBName} SET msgs = msgs + 1 WHERE id = ?`).run(this.#userId);
+    }
+
     /**
      * 增加經驗值
      * @param {number} expIncrease - 增加的經驗值

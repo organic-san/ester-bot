@@ -10,6 +10,8 @@ require('dotenv').config();
 
 let guildDataMap = new GuildDataMap(); 
 
+const small = 1;
+const huge = 2;
 
 // 地震消息處理
 
@@ -66,7 +68,7 @@ const announcement = async (msgList, level) => {
         const lastDate = new Date((level === 1 ? lastSmallEarthquakeTime : lastHugeEarthquakeTime) || "2023-08-01T00:00:00");
         const newDate = new Date(i.eqTime);
         if(newDate - lastDate > 0) {
-            level === 1 ? (Record.set("lastSmallEarthquakeTime", newDate.getTime())) : (Record.set("lastHugeEarthquakeTime", newDate.getTime()));
+            level === small ? (Record.set("lastSmallEarthquakeTime", newDate.getTime())) : (Record.set("lastHugeEarthquakeTime", newDate.getTime()));
         }
     }
 }
@@ -74,10 +76,13 @@ const announcement = async (msgList, level) => {
 // 反覆偵測地震
 setInterval(async () => {
     console.log("偵測地震")
-    for(let i = 1; i <= 2; i++) {
-        let {msgList} = await earthquake(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A001${i+4}-001?Authorization=${process.env.CWBKEY}` + 
-            `&format=JSON&AreaName=&StationName=A` + 
-            `&timeFrom=${textCommand.localISOTime(Record.get("lastSmallEarthquakeTime")) || "2023-08-01T00:00:00"}`);
-        announcement(msgList, i);
-    }
+    let { msgList } = await earthquake(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization=${process.env.CWBKEY}` + 
+        `&format=JSON&AreaName=&StationName=A` + 
+        `&timeFrom=${textCommand.localISOTime(Record.get("lastSmallEarthquakeTime")) || "2023-08-01T00:00:00"}`);
+    announcement(msgList, small);
+
+    let { msgList : msgList2 } = await earthquake(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0015-001?Authorization=${process.env.CWBKEY}` + 
+        `&format=JSON&AreaName=&StationName=A` + 
+        `&timeFrom=${textCommand.localISOTime(Record.get("lastHugeEarthquakeTime")) || "2023-08-01T00:00:00"}`);
+    announcement(msgList2, huge);
 }, 30 * 1000);
