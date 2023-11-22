@@ -7,3 +7,6 @@ node_modules/
 /commands/music
 /error
 .vscode/
+*.db
+*test.js
+*/backup

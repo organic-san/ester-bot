@@ -4,7 +4,12 @@
   "description": "ester",
   "main": "ester.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "main": "node ester.js",
+    "init": "node datainit.js",
+    "s": "node ester-slash.js",
+    "sg": "node ester-slash-global.js"
+
   },
   "author": "organic_san",
   "license": "ISC",
@@ -13,6 +18,7 @@
     "@discordjs/opus": "^0.5.3",
     "@discordjs/rest": "^0.1.0-canary.0",
     "@discordjs/voice": "^0.6.0",
+    "better-sqlite3": "^9.1.1",
     "discord-api-types": "^0.23.1",
     "discord.js": "^13.6.0",
     "dotenv": "^10.0.0",

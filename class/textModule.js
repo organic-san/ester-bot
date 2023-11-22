@@ -13,6 +13,12 @@ module.exports = {
     messageCooldown: 45, //s
 
     /**
+     * 經驗值獲得公式
+     * @returns 回傳獲得的經驗值量 
+     */
+    expAddFormula: () => (Math.floor(Math.random() * 6) + 10),
+
+    /**
      * 隨機排序陣列
      * @param {Array} array 
      */
@@ -125,6 +131,24 @@ module.exports = {
             }
         }
         return false;
+    },
+
+    localISOTimeNow: () => {
+        let tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 19);
+    },
+
+    localISOTime: (t) => {
+        let tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(t - tzoffset)).toISOString().slice(0, 19);
+    },
+
+    wait(ms) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve();
+            }, ms);
+        })
     },
     //#endregion
 
