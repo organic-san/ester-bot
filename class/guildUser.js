@@ -5,6 +5,8 @@ const DB = require('./database.js');
 const { levelUpCalc, avgLevelPoint, messageCooldown } = require('./textModule.js');
 require('dotenv').config();
 
+const db = DB.getConnection();
+
 module.exports = class User {
     /**
      * @type GuildData
@@ -12,6 +14,7 @@ module.exports = class User {
     #guildId;
     #userId;
     #lastMessageTime = 0;
+    #lastTagChangeTime = 0;
 
     /**
      * 
@@ -21,7 +24,6 @@ module.exports = class User {
      */
     constructor(userId, guildId, userTag) {
         if(!userId || !guildId) throw new Error("User Constructor Error: id and guildId must be provided.");
-        const db = DB.getConnection();
         // 檢查該伺服器是否存在
         const { count : guildCount } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(guildId);
         if(guildCount === 0) throw new Error("User Constructor Error: guild not found.");
@@ -29,12 +31,14 @@ module.exports = class User {
         this.#userId = userId;
         this.#guildId = guildId;
 
-        const { count: userCount } = db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE id = ?`).get(userId);
+        const { count: userCount } = db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId);
         if(userCount != 0) return;
 
         db.prepare(`
             INSERT INTO ${this.#DBName} VALUES (
                 @id, 
+                @userId,
+                @guildId,
                 @tag, 
                 @dm, 
                 @exp, 
@@ -43,7 +47,9 @@ module.exports = class User {
                 @levels
             )
         `).run({
-            id: userId,
+            id: this.#databaseId,
+            userId: userId,
+            guildId: guildId,
             tag: userTag,
             dm: 1,
             exp: 0,
@@ -59,43 +65,47 @@ module.exports = class User {
         return this.#userId;
     }
 
+    get #databaseId() {
+        return `${this.#guildId}_${this.#userId}`;
+    }
+
     get #DBName() {
-        return process.env.USERTABLE + this.#guildId;
+        return process.env.USERTABLE;
+    }
+
+    async update() {
+        if(this.#lastTagChangeTime - Date.now() < 24 * 60 * 60 * 1000) return;
+        const user = await DCAccess.getUser(this.#userId);
+        db.prepare(`UPDATE ${this.#DBName} SET tag = ? WHERE userId = ?`).run(user.tag, this.#userId);
+        this.#lastTagChangeTime = Date.now();
     }
 
     increaseMsg() {
-        const db = DB.getConnection();
-        db.prepare(`UPDATE ${this.#DBName} SET msgs = msgs + 1 WHERE id = ?`).run(this.#userId);
+        db.prepare(`UPDATE ${this.#DBName} SET msgs = msgs + 1 WHERE id = ?`).run(this.#databaseId);
     }
 
     getExp() {
-        const db = DB.getConnection();
-        return db.prepare(`SELECT exp FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).exp;
+        return db.prepare(`SELECT exp FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId).exp;
     }
 
     getLevel() {
-        const db = DB.getConnection();
-        return db.prepare(`SELECT levels FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).levels;
+        return db.prepare(`SELECT levels FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId).levels;
     }
 
     getRanking() {
-        const db = DB.getConnection();
-        return db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE exp > ?`).get(this.getExp()).count + 1;
+        return db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE exp > ? AND guildId = ?`).get(this.getExp(), this.#guildId).count + 1;
     }
 
     getMsgs() {
-        const db = DB.getConnection();
-        return db.prepare(`SELECT msgs FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).msgs;
+        return db.prepare(`SELECT msgs FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId).msgs;
     }
 
     getDM() {
-        const db = DB.getConnection();
-        return db.prepare(`SELECT DM FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).DM;
+        return db.prepare(`SELECT DM FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId).DM;
     }
 
     changeDM() {
-        const db = DB.getConnection();
-        db.prepare(`UPDATE ${this.#DBName} SET DM = NOT DM WHERE id = ?`).run(this.#userId);
+        db.prepare(`UPDATE ${this.#DBName} SET DM = NOT DM WHERE id = ?`).run(this.#databaseId);
     }
 
     /**
@@ -109,7 +119,6 @@ module.exports = class User {
     addexp(expIncrease, channel, isNewMessage, isSkipTimeCheck) {
         isSkipTimeCheck ??= false;
         isNewMessage ??= true;
-        const db = DB.getConnection();
         const {levelsReact, levelsReactChannel, "levels": isLevelsOpen} = db.prepare(`
             SELECT levelsReact, levelsReactChannel, levels
             FROM ${process.env.MAINTABLE} 
@@ -119,24 +128,23 @@ module.exports = class User {
         // 沒有開啟等級系統的情況
         if(!isLevelsOpen) return;
 
-        // 還沒超過冷卻的情況
-        if (Date.now() - this.#lastMessageTime < messageCooldown * 1000 && !isSkipTimeCheck) return;
-
-        let {"DM": dm, exp, msgs, levels} = db.prepare(`
-            SELECT DM, exp, msgs, levels
+        let {"DM": dm, exp, levels} = db.prepare(`
+            SELECT DM, exp, levels
             FROM ${this.#DBName}
             WHERE id = ?
-        `).get(this.#userId);
-        exp += expIncrease;
+        `).get(this.#databaseId);
+
+        // 超過冷卻的情況
+        if (Date.now() - this.#lastMessageTime > messageCooldown * 1000 || isSkipTimeCheck) exp += expIncrease;
+
         if(isNewMessage) {
-            msgs += 1;
             this.#lastMessageTime = Date.now();
         }
         const isLevelUp = (exp >= (levelUpCalc(levels)) * avgLevelPoint);
         if(isLevelUp) levels++;
 
-        db.prepare(`UPDATE ${this.#DBName} SET exp = ?, msgs = ?, levels = ? WHERE id = ?`)
-            .run(exp, msgs, levels, this.#userId);
+        db.prepare(`UPDATE ${this.#DBName} SET exp = ?, levels = ? WHERE id = ?`)
+            .run(exp, levels, this.#databaseId);
 
         // 沒有升等的情況
         if (!isLevelUp) return;

@@ -107,10 +107,9 @@ module.exports = {
             /**
              * 顯示整個伺服器的經驗值排名
              * @param {number} page 頁數
-             * @param {number} pageShowHax 單頁上限 
              * @returns {Discord.Embed} 包含排名的embed資料
              */
-            function levelsEmbed(page, pageShowHax){
+            function levelsEmbed(page){
                 let levelembed = new Discord.EmbedBuilder()
                     .setTitle(`${interaction.guild.name} 的等級排行`)
                     .setColor(process.env.EMBEDCOLOR)                            
@@ -139,7 +138,7 @@ module.exports = {
                 return levelembed;
             }
 
-            const levels = levelsEmbed(page, pageShowHax);
+            let levels = levelsEmbed(page);
             const row = new Discord.ActionRowBuilder()
                 .addComponents([
                     new Discord.ButtonBuilder().setCustomId('first').setLabel('⏮️ 第一頁').setStyle(Discord.ButtonStyle.Secondary),
@@ -158,14 +157,13 @@ module.exports = {
                 if(i.customId === 'previous') page = Math.max(page - 1, 0);
                 if(i.customId === 'next') page = Math.min(page + 1, Math.floor(userList.length / pageShowHax));
 
-                const levels = levelsEmbed(page, pageShowHax);
+                levels = levelsEmbed(page);
                 i.update({embeds: [levels], components: [row]});
                 collector.resetTimer({ time: 60 * 1000 });
             });
             
             collector.on('end', (c, r) => {
                 if(r !== "messageDelete"){
-                    const levels = levelsEmbed(page, pageShowHax);
                     interaction.editReply({embeds: [levels], components: []})
                 }
             });
@@ -205,7 +203,7 @@ module.exports = {
             });
 
             const filter = (i) => i.user.id === interaction.user.id;
-            const reaction = await msg.awaitMessageComponent({ filter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+            const reaction = await msg.awaitMessageComponent({ filter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
                 .catch(() => {});
             if (!reaction) {
                 return msg.edit({content: "由於逾時而取消設定。", components: []}).catch(() => {});

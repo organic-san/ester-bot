@@ -47,24 +47,25 @@ DCAccess.on(Discord.Events.MessageCreate,
                 const tc = msg.content.substring(prefix[0].Value.length).split(splitText);
                 switch(tc[0]){
                     case 'emoji':
-                        
-                        if (!msg.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) return;
+                        if (!msg.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)) return;
                         let emojiTrans = guildDataMap.get(msg.guild.id).getEmojiTrans();
                         const cmd = await msg.channel.send({
                             content: `自動表情符號轉換功能 目前狀態: ${emojiTrans ? "開啟" : "停用"}`, 
-                            components: [new Discord.MessageActionRow().addComponents([
-                                    new Discord.MessageButton()
+                            components: [
+                                new Discord.ActionRowBuilder().addComponents([
+                                    new Discord.ButtonBuilder()
                                         .setLabel(emojiTrans ? "停用" : "開啟")
                                         .setCustomId('1')
-                                        .setStyle('SECONDARY')
-                                    
-                                ])]
+                                        .setStyle(Discord.ButtonStyle.Primary)
+                                ])
+                            ]
+
                         });
                         const mMsgfilter = async (i) => {
                             await i.deferUpdate();
                             return i.customId === '1';
                         };
-                        let p1StartBtn = await cmd.awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+                        let p1StartBtn = await cmd.awaitMessageComponent({ filter: mMsgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
                             .catch(() => {});
                         if (!p1StartBtn) {
                             return cmd.edit({content: "由於逾時而取消設定。", components: []}).catch(() => {});
@@ -162,10 +163,8 @@ DCAccess.on(Discord.Events.MessageCreate,
                     case 'addexp':
                         if(!word[1]) return;
                         if(Number.isNaN(parseInt(word[1]))) return;
-                        let guildUser;
-                        if(word[2]) guildUser = await guildDataMap.get(msg.guild.id).getUser(word[1]);
-                        else guildUser = await guildDataMap.get(msg.guild.id).getUser(msg.author.id);
-                        guildUser?.addexp(parseInt(word[word.length - 1]), msg.channel, true, true);
+                        guildUser = await guildDataMap.get(msg.guild.id).getUser(msg.author.id);
+                        guildUser?.addexp(parseInt(word[1]), msg.channel, false, true);
                         break;
 
                     case 'backup':

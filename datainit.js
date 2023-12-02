@@ -29,10 +29,34 @@ CREATE TABLE IF NOT EXISTS ${process.env.MAINTABLE} (
     levelsReact TEXT,
     levelsReactChannel TEXT,
     emojiTrans INTEGER NOT NULL CHECK (emojiTrans IN (0, 1)),
-    reactionsCount INTEGER,
     earthquakeAnnounceChannel TEXT,
     earthquakeAnnounceLevel INTEGER NOT NULL CHECK (earthquakeAnnounceLevel BETWEEN 0 AND 2)
 )
+`).run();
+
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS ${process.env.USERTABLE} (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    guildId TEXT,
+    tag TEXT,
+    DM INTEGER NOT NULL CHECK (DM IN (0, 1)),
+    exp INTEGER,
+    chips INTEGER,
+    msgs INTEGER,
+    levels INTEGER,
+    FOREIGN KEY (guildId) REFERENCES ${process.env.MAINTABLE}(id)
+    )
+`).run();
+
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS ${process.env.REACTIONTABLE} (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guildId TEXT,
+    react TEXT NOT NULL,
+    reply TEXT NOT NULL,
+    FOREIGN KEY (guildId) REFERENCES ${process.env.MAINTABLE}(id)
+    )
 `).run();
 
 // ====================================================================================================
@@ -54,6 +78,7 @@ if(fs.existsSync(dataPath)) {
 
     recordInsert.run('messageCount', recordList.messageCount);
     recordInsert.run('interactionCount', recordList.interactionCount);
+    recordInsert.run('autoReplyCount', recordList.commandCount ?? 0);
 
     const recordListInteraction = recordList.interaction;
     for (const key of Object.keys(recordListInteraction)) {
@@ -79,6 +104,7 @@ if(fs.existsSync(dataPath)) {
 
     recordInsert.run('messageCount', 0);
     recordInsert.run('interactionCount', 0);
+    recordInsert.run('autoReplyCount', 0);
 
     const commandFiles = fs.readdirSync('./commands')?.filter(file => file.endsWith('.js'));
     if(commandFiles) {
@@ -113,8 +139,11 @@ const filePath = 'data/guildInfo/guildlist.json';
 if(!fs.existsSync(filePath)) return;
 
 const serverDataArray = [];
+const userDataArray = [];
+const reactionDataArray = [];
+
 const insertServerData = db.prepare(`
-    INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
 const serverDataTrans = db.transaction((list) => {
     for (const server of list) {
@@ -133,9 +162,41 @@ const serverDataTrans = db.transaction((list) => {
             server.levelsReact,
             server.levelsReactChannel,
             server.emojiTrans ? 1 : 0,
-            server.reactionsCount,
             server.earthquakeAnnounceChannel,
             server.earthquakeAnnounceLevel
+        );
+    }
+});
+
+const insertUserData = db.prepare(`
+    INSERT INTO ${process.env.USERTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+`);
+const userDataTrans = db.transaction((list) => {
+    for (const user of list) {
+        insertUserData.run(
+            user.id, 
+            user.userId,
+            user.guildId,
+            user.tag, 
+            user.DM, 
+            user.exp, 
+            user.chips, 
+            user.msgs, 
+            user.levels
+        );
+    }
+});
+
+const insertReactionData = db.prepare(`
+    INSERT INTO ${process.env.REACTIONTABLE} VALUES (?, ?, ?, ?)
+`);
+const reactionDataTrans = db.transaction((list) => {
+    for (const reaction of list) {
+        insertReactionData.run(
+            null,
+            reaction.guildId,
+            reaction.react,
+            reaction.reply
         );
     }
 });
@@ -160,38 +221,17 @@ JSON.parse(guildList).forEach(e => {
         levelsReact: serverData.levelsReact,
         levelsReactChannel: serverData.levelsReactChannel,
         emojiTrans: serverData.emojiTrans,
-        reactionsCount: serverData.reactionsCount,
         earthquakeAnnounceChannel: serverData.earthquakeAnnounceChannel,
         earthquakeAnnounceLevel: serverData.earthquakeAnnounceLevel
     });
 
-    // Create tables for user data for each server
-    db.prepare(`
-        CREATE TABLE IF NOT EXISTS ${process.env.USERTABLE}${serverData.id} (
-        id TEXT PRIMARY KEY,
-        tag TEXT,
-        DM INTEGER NOT NULL CHECK (DM IN (0, 1)),
-        exp INTEGER,
-        chips INTEGER,
-        msgs INTEGER,
-        levels INTEGER
-        )
-    `).run();
-
     // Insert user data into the corresponding user table
-    const insertUserData = db.prepare(`
-        INSERT INTO ${process.env.USERTABLE}${serverData.id} VALUES (?, ?, ?, ?, ?, ?, ?)
-    `);
-    const userDataTrans = db.transaction((list) => {
-        for (const user of list) {
-            insertUserData.run(user.id, user.tag, user.DM, user.exp, user.chips, user.msgs, user.levels);
-        }
-    });
 
-    const userDataArray = [];
     for (const user of serverData.users) {
         userDataArray.push({
-            id: user.id,
+            id: `${serverData.id}_${user.id}`,
+            userId: user.id,
+            guildId: serverData.id,
             tag: user.tag,
             DM: user.DM ? 1 : 0,
             exp: user.exp,
@@ -200,9 +240,17 @@ JSON.parse(guildList).forEach(e => {
             levels: user.levels
         });
     }
-    userDataTrans(userDataArray);
+    for(const reaction of serverData.reaction) {
+        reactionDataArray.push({
+            guildId: serverData.id,
+            react: reaction.react,
+            reply: reaction.reply
+        });
+    }
 });
 
 serverDataTrans(serverDataArray);
+userDataTrans(userDataArray);
+reactionDataTrans(reactionDataArray);
 
 db.close();

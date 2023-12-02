@@ -1,6 +1,7 @@
 const DCAccess = require('../class/discordAccess');
 const Discord = require('discord.js');
 const Record = require('../class/record');
+const GuildDataMap = require('../class/guildDataMap');
 
 DCAccess.on(Discord.Events.MessageCreate, 
     /**
@@ -14,6 +15,7 @@ DCAccess.on(Discord.Events.MessageCreate,
     if(msg.webhookId) return;
     if(!msg.member.user) return;
     if(msg.member.user.bot) return;
+    if(!msg.content) return;
 
     if(!DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.AddReactions) ||
         !DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ViewChannel))
@@ -112,12 +114,11 @@ DCAccess.on(Discord.Events.MessageCreate,
             Record.increase("happyBeamCount");
         }
 
-        // TODO: reaction 處理
-        // const isReaction = guildInformation.get(msg.guild.id).findReaction(msg.content);
-        // if(isReaction >= 0) {
-        //     await msg.channel.sendTyping();
-        //     msg.channel.send(guildInformation.get(msg.guild.id).getReaction(isReaction));
-        //     console.log("isCommand: false: isReaction");
-        //     record.autoReplyCount+=1;
-        // }
+        const guild = (new GuildDataMap()).get(msg.guild.id);
+        const reaction = guild.findReaction(msg.content);
+        if(!reaction) return;
+        await msg.channel.sendTyping();
+        msg.channel.send(reaction);
+        console.log("isCommand: false: isReaction");
+        Record.increase("autoReplyCount");
 });

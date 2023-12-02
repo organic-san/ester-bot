@@ -112,7 +112,7 @@ module.exports = {
                 }
             });
             var user = 0, bot = 0;
-            const members = interaction.guild.members.fetch();
+            const members = await interaction.guild.members.fetch();
             members.map(member => {
                 if (member.user.bot) bot++;
                 else user++;

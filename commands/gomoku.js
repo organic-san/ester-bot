@@ -47,7 +47,7 @@ module.exports = {
             new Discord.ButtonBuilder()
                 .setLabel("開始遊戲")
                 .setCustomId('OK')
-                .setStyle('PRIMARY')
+                .setStyle(Discord.ButtonStyle.Primary)
             ]);
         /**
          * @type {Discord.Message<boolean>}
@@ -77,7 +77,7 @@ module.exports = {
             await i.deferUpdate();
             return i.customId === 'OK'
         };
-        let p1btn = await message[0].awaitMessageComponent({ filter: msgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+        let p1btn = await message[0].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!p1btn) {
             return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向對方傳送邀請。", components: []}).catch(() => {});
@@ -99,7 +99,7 @@ module.exports = {
             return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給" + user[1] + " (" + user[1].tag + ")" + "。").catch(() => {});
         }
 
-        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 });
         if (!p2btn) {
             mainMsg.edit("對方並未對邀請做出回覆，因此取消開始遊戲。");
             message[0].edit("對方並未對邀請做出回覆，因此取消開始遊玩五子棋。");

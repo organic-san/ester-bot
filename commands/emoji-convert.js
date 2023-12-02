@@ -88,7 +88,7 @@ module.exports = {
             await i.deferUpdate();
             return i.customId === '1';
         };
-        let p1StartBtn = await cmd.awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+        let p1StartBtn = await cmd.awaitMessageComponent({ filter: mMsgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!p1StartBtn) {
             return cmd.edit({content: "由於逾時而取消設定。", components: []}).catch(() => {});

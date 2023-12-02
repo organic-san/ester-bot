@@ -69,25 +69,13 @@ module.exports = class GuildData {
             eqAnnsLv: 0
         });
 
-        // 建立用戶資料表
-        db.prepare(`
-            CREATE TABLE IF NOT EXISTS ${this.#DBName} (
-            id TEXT PRIMARY KEY,
-            tag TEXT,
-            DM INTEGER NOT NULL CHECK (DM IN (0, 1)),
-            exp INTEGER,
-            chips INTEGER,
-            msgs INTEGER,
-            levels INTEGER
-            )
-        `).run();
         DCAccess.log(`資料庫新增: 新伺服器: **${guild.name}** (${id})`);
     }
 
     // 固有資訊
 
     get #DBName() {
-        return process.env.USERTABLE + this.#guildId;
+        return process.env.USERTABLE;
     }
 
     get id() {
@@ -142,7 +130,7 @@ module.exports = class GuildData {
     }
 
     resetLevels() {
-        db.prepare(`UPDATE ${this.#DBName} SET exp = 0, levels = 0`).run();
+        db.prepare(`UPDATE ${this.#DBName} SET exp = 100, levels = 0 WHERE guildId = ?`).run(this.#guildId);
     }
 
     /**
@@ -150,7 +138,7 @@ module.exports = class GuildData {
      * @returns {Array<{id: string, exp:number, rank: number, levels: number}>}
      */
     getLevelsUserList() {
-        return db.prepare(`SELECT id, exp, levels, RANK() OVER (ORDER BY exp DESC) AS rank FROM ${this.#DBName}`).all();
+        return db.prepare(`SELECT userId as id, exp, levels, RANK() OVER (ORDER BY exp DESC) AS rank FROM ${this.#DBName} WHERE guildId = ?`).all(this.#guildId);
     }
 
     // 歡迎/送別訊息相關
@@ -263,6 +251,41 @@ module.exports = class GuildData {
         DCAccess.log(`送別訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
 
+    // 自動回覆相關
+
+    getReactionData() {
+        return db.prepare(`SELECT id, react, reply FROM ${process.env.REACTIONTABLE} WHERE guildId = ?`).all(this.#guildId);
+    }
+
+    isReactionExist(react) {
+        return db.prepare(`SELECT Count(*) as count FROM ${process.env.REACTIONTABLE} WHERE guildId = ? AND react = ?`).get(this.#guildId, react).count;
+    }
+
+    getReaction(id) {
+        return db.prepare(`SELECT react, reply FROM ${process.env.REACTIONTABLE} WHERE guildId = ? AND id = ?`).get(this.#guildId, id);
+    }
+
+    getReactionSize() {
+        return db.prepare(`SELECT COUNT(*) as count FROM ${process.env.REACTIONTABLE} WHERE guildId = ?`).get(this.#guildId).count;
+    }
+
+    addReaction(react, reply) {
+        const result = db.prepare(`INSERT INTO ${process.env.REACTIONTABLE} VALUES (?, ?, ?, ?)`).run(null, this.#guildId, react, reply);
+        return result.lastInsertRowid;
+    }
+
+    deleteReaction(id) {
+        db.prepare(`DELETE FROM ${process.env.REACTIONTABLE} WHERE guildId = ? AND id = ?`).run(this.#guildId, id);
+    }
+
+    clearReaction() {
+        db.prepare(`DELETE FROM ${process.env.REACTIONTABLE} WHERE guildId = ?`).run(this.#guildId);
+    }
+
+    findReaction(content) {
+        return db.prepare(`SELECT reply FROM ${process.env.REACTIONTABLE} WHERE ? LIKE '%' || react || '%' AND guildId = ?`).get(content, this.#guildId)?.reply;
+    }
+
     // 資料控制相關
 
     /**
@@ -293,16 +316,21 @@ module.exports = class GuildData {
     delete() {
         const { count, name } = db.prepare(`SELECT COUNT(*) as count, name FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId);
         if(count === 0) return;
+        
+        db.prepare(`
+            DELETE FROM ${process.env.USERTABLE}
+            WHERE guildId = ?
+        `).run(this.#guildId);
+
+        db.prepare(`
+            DELETE FROM ${process.env.REACTIONTABLE}
+            WHERE guildId = ?
+        `).run(this.#guildId);
 
         db.prepare(`
             DELETE FROM ${process.env.MAINTABLE}
             WHERE id = ?
         `).run(this.#guildId);
-
-        // 建立用戶資料表
-        db.prepare(`
-            DROP TABLE IF EXISTS ${this.#DBName}
-        `).run();
         DCAccess.log(`資料庫移除: 刪除伺服器: **${name}** (${this.#guildId})`);
     }
 }

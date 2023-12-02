@@ -114,6 +114,7 @@ client.on(Discord.Events.MessageCreate, async msg => {
     const guildUser = await guildData.getUser(msg.author.id);
     guildUser.addexp(textCommand.expAddFormula(), msg.channel);
     guildUser.increaseMsg();
+    guildUser.update();
     console.log("訊息接收");
 });
 //#endregion
