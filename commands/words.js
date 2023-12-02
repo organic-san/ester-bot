@@ -1,9 +1,8 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 const characters = require("../data/characters/testEnglishCharacters.json");
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('words')
         .setDescription('單字列表')
         .addSubcommand(opt =>
@@ -67,32 +66,40 @@ module.exports = {
 
             if(wordAmount > 48) return interaction.reply({content: "資料太大！請減少單字要求量。", ephemeral: true});
 
-            const embed = new Discord.MessageEmbed()
+            const embed = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTimestamp()
-                .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({dynamic: true})}`})
+                .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({extension: "png"})}`})
                 .setTitle(`每日單字 ${wordAmount} 個\n`);
-            const embed2 = new Discord.MessageEmbed()
+            const embed2 = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTimestamp()
-                .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({dynamic: true})}`})
+                .setFooter({text: `${interaction.client.user.tag}`, iconURL: `${interaction.client.user.displayAvatarURL({extension: "png"})}`})
             let wordList = [];
 
+            let flag = false;
             for(let i = 0; i < wordAmount; i++){
                 seed = Math.floor(seededRandom(seed, characters.length - 1));
                 if(wordList.includes(characters[seed].character)) { i--; seed++; continue; }
                 if(!rankDefine.includes(characters[seed].rank)) { i--; seed++; continue; }
 
                 wordList.push(characters[seed].character);
-                if(embed.fields.length < 24){
-                    embed.addField(`${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
-                        `||${characters[seed].mean.split("; [").join('\n[')}||`, true);
+                if(i < 24){
+                    embed.addFields({
+                        name: `${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
+                        value: `||${characters[seed].mean.split("; [").join('\n[')}||`, 
+                        inline: true
+                    });
                 }else{
-                    embed2.addField(`${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
-                        `||${characters[seed].mean.split("; [").join('\n[')}||`, true);
+                    flag = true;
+                    embed2.addFields({
+                        name: `${i + 1}. ${characters[seed].character}`/*\n${characters[seed].rank}*/, 
+                        value: `||${characters[seed].mean.split("; [").join('\n[')}||`, 
+                        inline: true
+                    });
                 }
             }
-            if(embed2.fields.length > 0){
+            if(flag){
                 interaction.editReply({embeds:[embed, embed2]});
             }else{
                 interaction.editReply({embeds:[embed]});

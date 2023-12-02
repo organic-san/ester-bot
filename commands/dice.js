@@ -1,8 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('dice')
 		.setDescription('丟個骰子')
         .addIntegerOption(opt => 

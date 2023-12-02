@@ -1,8 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('timer')
         .setDescription('設定一個計時器')
         .addIntegerOption(opt => 
@@ -36,7 +35,6 @@ module.exports = {
         if(setTime > maxTime) return interaction.reply({content: `時間過大！請不要大於 ${Math.floor(maxTime/3600)} 小時。`, ephemeral: true});
         if(setTime <= 0) return interaction.reply({content: `時間太小！請不要小於0秒。`, ephemeral: true});
 
-        const goal = new Date(Date.now() + setTime * 1000);
         const hours = Math.floor(setTime / 3600);
         let mins = Math.floor((setTime % 3600) / 60);
         let secs = setTime % 60;

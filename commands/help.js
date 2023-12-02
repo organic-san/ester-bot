@@ -1,8 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('help')
 		.setDescription('幫助清單'),
 	tag: "interaction",
@@ -12,27 +11,27 @@ module.exports = {
      */
 	async execute(interaction) {
 
-        const row = new Discord.MessageActionRow()
+        const row = new Discord.ActionRowBuilder()
         .addComponents(
-            new Discord.MessageButton()
+            new Discord.ButtonBuilder()
                 .setLabel('功能說明')
-                .setStyle('LINK')
+                .setStyle(Discord.ButtonStyle.Link)
                 .setURL("https://organic-san.gitbook.io/esterbot.help/"),
-            new Discord.MessageButton()
+            new Discord.ButtonBuilder()
                 .setLabel('邀請連結')
-                .setStyle('LINK')
+                .setStyle(Discord.ButtonStyle.Link)
                 .setURL(process.env.BOT_INVITE_LINK),
-            new Discord.MessageButton()
+            new Discord.ButtonBuilder()
                 .setLabel('開發伺服器')
-                .setStyle('LINK')
+                .setStyle(Discord.ButtonStyle.Link)
                 .setURL("https://discord.gg/hveXGk5Qmz")
         );
 
-        const row2 = new Discord.MessageActionRow()
+        const row2 = new Discord.ActionRowBuilder()
         .addComponents(
-            new Discord.MessageButton()
+            new Discord.ButtonBuilder()
                 .setLabel('使用與隱私權條款')
-                .setStyle('LINK')
+                .setStyle(Discord.ButtonStyle.Link)
                 .setURL("https://organic-san.gitbook.io/esterbot.help/others/privacy-rule")
         )
 

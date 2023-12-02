@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const fs = require('fs');
 require('dotenv').config();
 
 module.exports = {
@@ -149,6 +150,15 @@ module.exports = {
                 resolve();
             }, ms);
         })
+    },
+
+    createErrorLog(err) {
+        const errorLog = `${err}\n\nError Info: ${JSON.stringify(err, null, '\t')}\n\nError Route: ${err.stack}`;
+        let filename = __dirname + `/../data/error/${this.localISOTimeNow()}.txt`.split(":").join("-");
+        fs.writeFile(filename, errorLog, function (err){
+            if (err)
+                console.log(err);
+        });
     },
     //#endregion
 

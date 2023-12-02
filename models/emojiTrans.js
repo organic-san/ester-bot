@@ -1,11 +1,11 @@
-const DCAccess = require('../../class/discordAccess');
+const DCAccess = require('../class/discordAccess');
 const Discord = require('discord.js');
-const GuildDataMap = require('../../class/guildDataMap');
-const Record = require('../../class/record');
+const GuildDataMap = require('../class/guildDataMap');
+const Record = require('../class/record');
 
 const guildDataMap = new GuildDataMap();
 
-DCAccess.on('messageCreate', 
+DCAccess.on(Discord.Events.MessageCreate, 
     /**
      * 
      * @param {Discord.Message<boolean>} msg 
@@ -18,7 +18,7 @@ DCAccess.on('messageCreate',
     if(!msg.member.user) return;
     if(msg.member.user.bot) return;
 
-    if(DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.MANAGE_WEBHOOKS) && 
+    if(DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ManageWebhooks) && 
         !msg.content.startsWith('e^')) {
             
         if(!msg.channel.isThread() && guildDataMap.get(msg.guild.id).getEmojiTrans()){
@@ -54,14 +54,14 @@ DCAccess.on('messageCreate',
                     let webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
                     if(!webhook) {
                         msg.channel.createWebhook(msg.member.displayName, {
-                            avatar: msg.author.displayAvatarURL({dynamic: true, format: "png"})
+                            avatar: msg.author.displayAvatarURL({extension: "png"})
                         })
                             .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
                             .catch(console.error);
                     } else {
                         await webhook.edit({
                             name: msg.member.displayName,
-                            avatar: msg.author.displayAvatarURL({dynamic: true, format: "png"})
+                            avatar: msg.author.displayAvatarURL({extension: "png"})
                         })
                             .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
                             .catch(console.error);

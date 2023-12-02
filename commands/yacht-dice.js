@@ -1,5 +1,6 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
+const Record = require('../class/record.js');
+
 const diceEmoji = [
     "<:dice_1:959828326149681212>",
     "<:dice_2:959828326044823562>",
@@ -10,7 +11,7 @@ const diceEmoji = [
 ]
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('yacht-dice')
         .setDescription('進行一場快艇骰子遊戲')
         .addUserOption(opt => 
@@ -26,14 +27,13 @@ module.exports = {
                 .setDescription('要共同遊玩的玩家三號')
                 .setRequired(false)
         ),
-    tag: "record",
+    tag: "interaction",
 
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
-     * @param {dataRecord} record
      */
-	async execute(interaction, record) {
+	async execute(interaction) {
         
         const userList = [interaction.user];
         for(let i=1; i<4; i++) {
@@ -73,11 +73,11 @@ module.exports = {
             "快艇:當有五顆點數相同的骰子時，獲得50分。\n\n" +
             "✅ 組合分數與說明在遊戲過程中也可以查看。";
             
-        const OKbutton = new Discord.MessageActionRow().addComponents([
-            new Discord.MessageButton()
+        const OKbutton = new Discord.ActionRowBuilder().addComponents([
+            new Discord.ButtonBuilder()
                 .setLabel("開始遊戲")
                 .setCustomId('OK')
-                .setStyle('PRIMARY')
+                .setStyle(Discord.ButtonStyle.Primary)
             ]);
 
         /**
@@ -107,7 +107,7 @@ module.exports = {
             await i.deferUpdate();
             return i.customId === 'OK'
         };
-        let p1StartBtn = await msgList[0].awaitMessageComponent({ filter: mMsgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+        let p1StartBtn = await msgList[0].awaitMessageComponent({ filter: mMsgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!p1StartBtn) {
             return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向其他玩家傳送邀請。", components: []}).catch(() => {});
@@ -143,7 +143,7 @@ module.exports = {
                 if(isErr) break;
         
                 const filter = (i) => i.customId === 'OK';
-                let startBtn = await msgList[i].awaitMessageComponent({ filter: filter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+                let startBtn = await msgList[i].awaitMessageComponent({ filter: filter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
                     .catch(() => {});
                 if (!startBtn) {
                     mainMsg.edit(`${userList[i]} (${userList[i].tag}) 並未對邀請做出回覆，因此取消開始遊戲。`).catch(() => {});
@@ -337,7 +337,6 @@ module.exports = {
                         });
                         let winner = "";
                         let msgInfo = `\n結果同步紀錄於 ${mainMsg.channel} 的這則訊息中:\n${mainMsg.url}`;
-                        let week = Math.floor( ((Date.now() / (1000 * 60 * 60 * 24 )) - 3) / 7 );
                         /**
                          * @type {Array<number>}
                          */
@@ -366,19 +365,23 @@ module.exports = {
                             winner = `🏆恭喜 ${userList[0]} (${userList[0].tag}) 獲得了 ${gameBoardList[0].pointCalc()} 分!`
                         }
 
-                        if(record.maxiumYachtScore <= highest || record.weeklyYachtScore <= highest || record.weeklyYachtScoreWeek !== week)
+                        let week = Math.floor( ((Date.now() / (1000 * 60 * 60 * 24 )) - 3) / 7 );
+                        const maxiumYachtScore = Record.get("maxiumYachtScore");
+                        const weeklyYachtScore = Record.get("weeklyYachtScore");
+                        const weeklyYachtScoreWeek = Record.get("weeklyYachtScoreWeek");
+                        if(maxiumYachtScore < highest || weeklyYachtScore < highest || weeklyYachtScoreWeek !== week) 
                             winner += '\n';
-                        if(record.maxiumYachtScore < highest) {
+                        if(maxiumYachtScore < highest) {
                             winner += `\n🌟更新了目前的最高紀錄!`;
-                            record.maxiumYachtScore = highest;
-                        } else if(record.maxiumYachtScore === highest) {
+                            Record.set("maxiumYachtScore", highest);
+                        } else if(maxiumYachtScore === highest) {
                             winner += `\n⭐打平了目前的最高紀錄!`;
                         }
-                        if(record.weeklyYachtScore < highest || record.weeklyYachtScoreWeek !== week) {
-                            record.weeklyYachtScore = highest;
-                            record.weeklyYachtScoreWeek = week;
+                        if(weeklyYachtScore < highest || weeklyYachtScoreWeek !== week) {
+                            Record.set("weeklyYachtScore", highest);
+                            Record.set("weeklyYachtScoreWeek", week);
                             winner += `\n🌟更新了本周的最高紀錄!`;
-                        } else if(record.weeklyYachtScore === highest) {
+                        } else if(weeklyYachtScore === highest) {
                             winner += `\n⭐打平了本周的最高紀錄!`;
                         }
 
@@ -553,7 +556,7 @@ class Yacht {
         return this.point1to6() >= 63 ? "+35" : "+0";
     }
 
-    idToyaku(id) {
+    idToYaku(id) {
         if(id === 0) return this.ones;
         if(id === 1) return this.twos;
         if(id === 2) return this.threes;
@@ -575,7 +578,7 @@ class Yacht {
      * @returns
      */
     putPoint(yaku, diceResult) {
-        let diceCount = [0,0,0,0,0,0];
+        const diceCount = [0,0,0,0,0,0];
         diceResult.forEach(d => diceCount[d-1]++);
         let announcement = "";
         let before = this.pointBonus();
@@ -652,43 +655,24 @@ class Yacht {
      */
     static textData(yathtData) {
         let pointText = "組合名稱  ";
-        yathtData.forEach((v, r) => {
-            pointText += ("玩家" + v.playerNumber.toString() + "  ");
-            if((r % 2) === 1) pointText += " ";
-        })
-        pointText += `\n  一點    `;
-        yathtData.forEach(v => pointText += v.ones.toString().padStart(3, " ") + "    ");
-        pointText += `\n  二點    `;
-        yathtData.forEach(v => pointText += v.twos.toString().padStart(3, " ") + "    ");
-        pointText += `\n  三點    `;
-        yathtData.forEach(v => pointText += v.threes.toString().padStart(3, " ") + "    ");
-        pointText += `\n  四點    `;
-        yathtData.forEach(v => pointText += v.fours.toString().padStart(3, " ") + "    ");
-        pointText += `\n  五點    `;
-        yathtData.forEach(v => pointText += v.fives.toString().padStart(3, " ") + "    ");
-        pointText += `\n  六點    `;
-        yathtData.forEach(v => pointText += v.sixes.toString().padStart(3, " ") + "    ");
-        pointText += "\n--------";
-        yathtData.forEach(v => pointText += "-------");
-        pointText += "\n  小計    ";
-        yathtData.forEach(v => pointText += v.point1to6().toString().padStart(3, " ") + "    ");
-        pointText += "\n  獎勵    ";
-        yathtData.forEach(v => pointText += v.pointBonus().padStart(3, " ") + "    ");
+        pointText += yathtData.map(v => `玩家${v.playerNumber.toString()}  ${(v.playerNumber === 2) ? " " : ""}`).join("");
+        pointText += `\n  一點    ${yathtData.map(v => v.ones.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  二點    ${yathtData.map(v => v.twos.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  三點    ${yathtData.map(v => v.threes.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  四點    ${yathtData.map(v => v.fours.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  五點    ${yathtData.map(v => v.fives.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  六點    ${yathtData.map(v => v.sixes.toString().padStart(3, " ")).join("    ")}`;
+        pointText += "\n--------" + "-".repeat(yathtData.length * 7);
+        pointText += `\n  小計    ${yathtData.map(v => v.point1to6().toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  獎勵    ${yathtData.map(v => v.pointBonus().padStart(3, " ")).join("    ")}`;
         pointText += "\n小計分數超過63分將獲得35分獎勵。\n";
-        pointText += `\n  機會    `;
-        yathtData.forEach(v => pointText += v.choice.toString().padStart(3, " ") + "    ");
-        pointText += `\n  葫蘆    `;
-        yathtData.forEach(v => pointText += v.fullHouse.toString().padStart(3, " ") + "    ");
-        pointText += `\n  鐵支    `;
-        yathtData.forEach(v => pointText += v.fourKind.toString().padStart(3, " ") + "    ");
-        pointText += `\n  小順    `;
-        yathtData.forEach(v => pointText += v.smallStraight.toString().padStart(3, " ") + "    ");
-        pointText += `\n  大順    `;
-        yathtData.forEach(v => pointText += v.bigStraight.toString().padStart(3, " ") + "    ");
-        pointText += `\n  快艇    `;
-        yathtData.forEach(v => pointText += v.yacht.toString().padStart(3, " ") + "    ");
-        pointText += "\n========";
-        yathtData.forEach(v => pointText += "=======");
+        pointText += `\n  機會    ${yathtData.map(v => v.choice.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  葫蘆    ${yathtData.map(v => v.fullHouse.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  鐵支    ${yathtData.map(v => v.fourKind.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  小順    ${yathtData.map(v => v.smallStraight.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  大順    ${yathtData.map(v => v.bigStraight.toString().padStart(3, " ")).join("    ")}`;
+        pointText += `\n  快艇    ${yathtData.map(v => v.yacht.toString().padStart(3, " ")).join("    ")}`;
+        pointText += "\n========" + "=".repeat(yathtData.length * 7);
         pointText += `\n  總和    `;
         yathtData.forEach(v => pointText += v.pointCalc().toString().padStart(3, " ") + "    ")
         return pointText;
@@ -697,12 +681,12 @@ class Yacht {
 }
 
 function diceButton(redice) {
-    return new Discord.MessageActionRow()
+    return new Discord.ActionRowBuilder()
             .addComponents([
-                new Discord.MessageButton()
+                new Discord.ButtonBuilder()
                     .setLabel('擲骰')
                     .setCustomId('Dice')
-                    .setStyle('PRIMARY')
+                    .setStyle(Discord.ButtonStyle.Primary)
                     .setDisabled(!(redice > 0))
             ]);
 }
@@ -716,42 +700,17 @@ function diceButton(redice) {
  * @returns 
  */
 function allDiceButton(dr, drd, rd, isPlayer) {
-    return new Discord.MessageActionRow()
-            .addComponents([
-                new Discord.MessageButton()
-                    .setEmoji(diceEmoji[dr[0] - 1])
-                    .setCustomId('dice0')
-                    .setStyle((drd[0] && (rd > 0)) ? "SUCCESS" : "SECONDARY")
-                    .setDisabled(!(isPlayer && (rd > 0)))
-            ])
-            .addComponents([
-                new Discord.MessageButton()
-                    .setEmoji(diceEmoji[dr[1] - 1])
-                    .setCustomId('dice1')
-                    .setStyle((drd[1] && (rd > 0)) ? "SUCCESS" : "SECONDARY")
-                    .setDisabled(!(isPlayer && (rd > 0)))
-            ])
-            .addComponents([
-                new Discord.MessageButton()
-                    .setEmoji(diceEmoji[dr[2] - 1])
-                    .setCustomId('dice2')
-                    .setStyle((drd[2] && (rd > 0)) ? "SUCCESS" : "SECONDARY")
-                    .setDisabled(!(isPlayer && (rd > 0)))
-            ])
-            .addComponents([
-                new Discord.MessageButton()
-                    .setEmoji(diceEmoji[dr[3] - 1])
-                    .setCustomId('dice3')
-                    .setStyle((drd[3] && (rd > 0)) ? "SUCCESS" : "SECONDARY")
-                    .setDisabled(!(isPlayer && (rd > 0)))
-            ])
-            .addComponents([
-                new Discord.MessageButton()
-                    .setEmoji(diceEmoji[dr[4] - 1])
-                    .setCustomId('dice4')
-                    .setStyle((drd[4] && (rd > 0)) ? "SUCCESS" : "SECONDARY")
-                    .setDisabled(!(isPlayer && (rd > 0)))
-            ]);
+    const buttons = [];
+    for (let i = 0; i < 5; i++) {
+        buttons.push(
+            new Discord.ButtonBuilder()
+                .setEmoji(diceEmoji[dr[i] - 1])
+                .setCustomId(`dice${i}`)
+                .setStyle((drd[i] && (rd > 0)) ? Discord.ButtonStyle.Success : Discord.ButtonStyle.Secondary)
+                .setDisabled(!(isPlayer && (rd > 0)))
+        );
+    }
+    return new Discord.ActionRowBuilder().addComponents(buttons);
 }
 
 /**
@@ -800,7 +759,7 @@ function selectMenu(dr, yz) {
         "5 個相同的骰子，獲得 50 點",
     ];
     for(let i = 0; i < 12; i++) {
-        if(yz.idToyaku(i) === '--') {
+        if(yz.idToYaku(i) === '--') {
             ddl.push(
                 {
                     label: ll[i],
@@ -810,9 +769,9 @@ function selectMenu(dr, yz) {
             );
         }
     }
-    const row = new Discord.MessageActionRow()
+    const row = new Discord.ActionRowBuilder()
         .addComponents(
-            new Discord.MessageSelectMenu()
+            new Discord.StringSelectMenuBuilder()
                 .setCustomId('yaku')
                 .setPlaceholder('選擇要填入的組合名稱(每個組合只能填入一次)')
                 .addOptions(ddl),

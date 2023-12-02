@@ -1,9 +1,8 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 const koma = ['⚪', '🟠', '🟫'];
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('gomoku')
         .setDescription('進行一場五子棋遊戲')
         .addUserOption(opt => 
@@ -13,9 +12,11 @@ module.exports = {
         ).addNumberOption(opt => 
             opt.setName('offensive')
                 .setDescription('選擇要先手的玩家。')
-                .addChoice('發起遊戲的玩家', 1)
-                .addChoice('收到邀請的玩家', 2)
-                .addChoice('隨機決定', 3)
+                .addChoices(
+                    {name: "隨機", value: 0},
+                    {name: "先手", value: 1},
+                    {name: "後手", value: 2}
+                )
                 .setRequired(true)
         //).addBooleanOption(opt => 
         //    opt.setName('kinjite')
@@ -42,8 +43,8 @@ module.exports = {
             (offensive === 1 ? `${user[0]} (${user[0].tag}) 為先手。` : 
                 (offensive === 2 ? `${user[1]} (${user[1].tag}) 為先手。` : "先後手將隨機決定。"));
             
-        const OKbutton = new Discord.MessageActionRow().addComponents([
-            new Discord.MessageButton()
+        const OKbutton = new Discord.ActionRowBuilder().addComponents([
+            new Discord.ButtonBuilder()
                 .setLabel("開始遊戲")
                 .setCustomId('OK')
                 .setStyle('PRIMARY')

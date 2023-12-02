@@ -14,7 +14,7 @@ module.exports = {
      */
 	async execute(interaction, guildInformation) {
 
-        if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+        if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)){ 
             return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
         }
 

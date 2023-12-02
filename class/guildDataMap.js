@@ -34,7 +34,7 @@ module.exports = class GuildDataMap {
     /**
      * 
      * @param {number} level 
-     * @param {Discord.MessageEmbed} infoEmbed 
+     * @param {Discord.Embed} infoEmbed 
      */
     announceEarthquake(level, infoEmbed) {
         const db = DB.getConnection();

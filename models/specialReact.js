@@ -1,8 +1,8 @@
-const DCAccess = require('../../class/discordAccess');
+const DCAccess = require('../class/discordAccess');
 const Discord = require('discord.js');
-const Record = require('../../class/record');
+const Record = require('../class/record');
 
-DCAccess.on('messageCreate', 
+DCAccess.on(Discord.Events.MessageCreate, 
     /**
      * 
      * @param {Discord.Message<boolean>} msg 
@@ -15,8 +15,8 @@ DCAccess.on('messageCreate',
     if(!msg.member.user) return;
     if(msg.member.user.bot) return;
 
-    if(!DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.ADD_REACTIONS) ||
-        !DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.VIEW_CHANNEL))
+    if(!DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.AddReactions) ||
+        !DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ViewChannel))
         return;
 
         // 幫文字加上表情符號
@@ -91,7 +91,7 @@ DCAccess.on('messageCreate',
             return;
         }
 
-        if(!DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.SEND_MESSAGES)) 
+        if(!DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.SendMessages)) 
             return;
 
         const happyKeywords = ['快樂光線', 'happybeam', 'happy beam', 'happylight', 'happy light'];

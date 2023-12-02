@@ -68,6 +68,36 @@ module.exports = class User {
         db.prepare(`UPDATE ${this.#DBName} SET msgs = msgs + 1 WHERE id = ?`).run(this.#userId);
     }
 
+    getExp() {
+        const db = DB.getConnection();
+        return db.prepare(`SELECT exp FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).exp;
+    }
+
+    getLevel() {
+        const db = DB.getConnection();
+        return db.prepare(`SELECT levels FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).levels;
+    }
+
+    getRanking() {
+        const db = DB.getConnection();
+        return db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE exp > ?`).get(this.getExp()).count + 1;
+    }
+
+    getMsgs() {
+        const db = DB.getConnection();
+        return db.prepare(`SELECT msgs FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).msgs;
+    }
+
+    getDM() {
+        const db = DB.getConnection();
+        return db.prepare(`SELECT DM FROM ${this.#DBName} WHERE id = ?`).get(this.#userId).DM;
+    }
+
+    changeDM() {
+        const db = DB.getConnection();
+        db.prepare(`UPDATE ${this.#DBName} SET DM = NOT DM WHERE id = ?`).run(this.#userId);
+    }
+
     /**
      * 增加經驗值
      * @param {number} expIncrease - 增加的經驗值

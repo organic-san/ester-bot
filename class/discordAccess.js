@@ -22,13 +22,13 @@ module.exports = {
         const options = {
             restTimeOffset: 100,
             intents: [
-                Discord.Intents.FLAGS.GUILDS,
-                Discord.Intents.FLAGS.GUILD_MESSAGES,
-                Discord.Intents.FLAGS.GUILD_MEMBERS, 
-                Discord.Intents.FLAGS.GUILD_INVITES,
-                Discord.Intents.FLAGS.GUILD_VOICE_STATES,
-                Discord.Intents.FLAGS.DIRECT_MESSAGES, 
-                Discord.Intents.FLAGS.GUILD_MESSAGE_REACTIONS
+                Discord.GatewayIntentBits.Guilds,
+                Discord.GatewayIntentBits.GuildMessages,
+                Discord.GatewayIntentBits.GuildMembers,
+                Discord.GatewayIntentBits.GuildInvites,
+                Discord.GatewayIntentBits.GuildVoiceStates,
+                Discord.GatewayIntentBits.DirectMessages,
+                Discord.GatewayIntentBits.GuildMessageReactions
             ],
         };
         client = new Discord.Client(options);
@@ -105,7 +105,7 @@ module.exports = {
         return {
             id: client.user.id,
             tag: client.user.tag,
-            avatar: client.user.displayAvatarURL({dynamic: true}),
+            avatar: client.user.displayAvatarURL({extension: "png"}),
         };
     },
 

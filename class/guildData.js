@@ -6,6 +6,8 @@ const User = require('./guildUser.js');
 const { localISOTimeNow } = require('./textModule.js');
 require('dotenv').config();
 
+const db = DB.getConnection();
+
 module.exports = class GuildData {
     #guildId;
     /**
@@ -20,7 +22,6 @@ module.exports = class GuildData {
     constructor(id) {
         if(!id) throw new Error("GuildData Constructor Error: id must be provided.");
         this.#guildId = id;
-        const db = DB.getConnection();
         const { count } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(id);
 
         if(count != 0) return;
@@ -83,6 +84,8 @@ module.exports = class GuildData {
         DCAccess.log(`資料庫新增: 新伺服器: **${guild.name}** (${id})`);
     }
 
+    // 固有資訊
+
     get #DBName() {
         return process.env.USERTABLE + this.#guildId;
     }
@@ -91,15 +94,120 @@ module.exports = class GuildData {
         return this.#guildId;
     }
 
+    // 表情符號相關
+
     getEmojiTrans() {
-        const db = DB.getConnection();
         return db.prepare(`SELECT emojiTrans FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).emojiTrans;
     }
 
     setEmojiTrans(value) {
         value = value ? 1 : 0;
-        const db = DB.getConnection();
         db.prepare(`UPDATE ${process.env.MAINTABLE} SET emojiTrans = ? WHERE id = ?`).run(value, this.#guildId);
+    }
+
+    // 地震資訊相關
+
+    setEarthquakeAnnounceLevel(level) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET earthquakeAnnounceLevel = ? WHERE id = ?`).run(level, this.#guildId);
+    }
+
+    setEarthquakeAnnounceChannel(channelId) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET earthquakeAnnounceChannel = ? WHERE id = ?`).run(channelId, this.#guildId);
+    }
+
+    // 等級相關
+
+    isLevelsOpen() {
+        return db.prepare(`SELECT levels FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).levels;
+    }
+
+    getLevelsMode() {
+        return db.prepare(`SELECT levelsReact FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).levelsReact;
+    }
+
+    getLevelsChannel() {
+        return db.prepare(`SELECT levelsReactChannel FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).levelsReactChannel;
+    }
+
+    setLevelsOpen(state) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET levels = ? WHERE id = ?`).run(state ? 1 : 0, this.#guildId);
+    }
+
+    setLevelsMode(mode) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET levelsReact = ? WHERE id = ?`).run(mode, this.#guildId);
+    }
+
+    setLevelsChannel(channelId) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET levelsReactChannel = ? WHERE id = ?`).run(channelId, this.#guildId);
+    }
+
+    resetLevels() {
+        db.prepare(`UPDATE ${this.#DBName} SET exp = 0, levels = 0`).run();
+    }
+
+    /**
+     * 
+     * @returns {Array<{id: string, exp:number, rank: number, levels: number}>}
+     */
+    getLevelsUserList() {
+        return db.prepare(`SELECT id, exp, levels, RANK() OVER (ORDER BY exp DESC) AS rank FROM ${this.#DBName}`).all();
+    }
+
+    // 歡迎/送別訊息相關
+
+    /**
+     * 
+     * @param {"joinMessage" | "leaveMessage"} opt 
+     * @param {boolean} state
+     */
+    changeWelcomeMessageState(opt, state) {
+        const optwork = opt === "joinMessage" ? "joinMessage" : opt === "leaveMessage" ? "leaveMessage" : undefined;
+        if(!optwork) return;
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET ${optwork} = ? WHERE id = ?`).run(state ? 1 : 0, this.#guildId);
+    }
+
+    isJoinMessageOpen() {
+        return db.prepare(`SELECT joinMessage FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).joinMessage;
+    }
+
+    isLeaveMessageOpen() {
+        return db.prepare(`SELECT leaveMessage FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId).leaveMessage;
+    }
+
+    setJoinMessageContent(content) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET joinMessageContent = ? WHERE id = ?`).run(content, this.#guildId);
+    }
+
+    setLeaveMessageContent(content) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET leaveMessageContent = ? WHERE id = ?`).run(content, this.#guildId);
+    }
+
+    setJoinMessageChannel(channelId) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET joinChannel = ? WHERE id = ?`).run(channelId, this.#guildId);
+    }
+
+    setLeaveMessageChannel(channelId) {
+        db.prepare(`UPDATE ${process.env.MAINTABLE} SET leaveChannel = ? WHERE id = ?`).run(channelId, this.#guildId);
+    }
+
+    /**
+     * 
+     * @returns {{joinMessage: boolean, joinMessageContent: string, joinChannel: string, leaveMessage: boolean, leaveMessageContent: string, leaveChannel: string}}
+     */
+    getWelcomeMessageSetting() {
+        const { 
+            joinMessage,
+            joinMessageContent, 
+            joinChannel,
+            leaveMessage,
+            leaveMessageContent,
+            leaveChannel
+        } = db.prepare(`
+            SELECT joinMessage, joinMessageContent, joinChannel, leaveMessage, leaveMessageContent, leaveChannel
+            FROM ${process.env.MAINTABLE} 
+            WHERE id = ?
+        `).get(this.#guildId);
+        return { joinMessage, joinMessageContent, joinChannel, leaveMessage, leaveMessageContent, leaveChannel };
     }
 
     /**
@@ -108,7 +216,6 @@ module.exports = class GuildData {
      * @returns {Promise<void>}
      */
     sendWelcomeMessage(user) {
-        const db = DB.getConnection();
         const { joinMessage, joinMessageContent, joinChannel } = db.prepare(`
             SELECT joinMessage, joinMessageContent, joinChannel 
             FROM ${process.env.MAINTABLE}
@@ -121,17 +228,18 @@ module.exports = class GuildData {
             channel = DCAccess.getGuild(this.#guildId).systemChannel;
             if(!channel) return;
         }
-        if(!DCAccess.permissionsCheck(channel, Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !DCAccess.permissionsCheck(channel, Discord.Permissions.FLAGS.VIEW_CHANNEL)) return;
+        if(!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
+            !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
         if(!joinMessageContent) return channel.send(`<@${user.id}> ，歡迎來到 **${guild.name}** !`);
-        const msg = joinMessageContent.replace(/<user>/g, ` <@${user.id}> `).replace(/<server>/g, ` **${guild.name}** `);
+        const msg = joinMessageContent.replace(/<user>/g, `<@${user.id}>`).replace(/<server>/g, `**${guild.name}**`);
         channel.send(msg);
+
+        DCAccess.log(`歡迎訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
 
     sendLeaveMessage(user) {
-        const db = DB.getConnection();
         const { leaveMessage, leaveMessageContent, leaveChannel } = db.prepare(`
             SELECT leaveMessage, leaveMessageContent, leaveChannel 
             FROM ${process.env.MAINTABLE} 
@@ -144,14 +252,18 @@ module.exports = class GuildData {
             channel = DCAccess.getGuild(this.#guildId).systemChannel;
             if(!channel) return;
         }
-        if(!DCAccess.permissionsCheck(channel, Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !DCAccess.permissionsCheck(channel, Discord.Permissions.FLAGS.VIEW_CHANNEL)) return;
+        if(!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
+            !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
         if(!leaveMessageContent) return channel.send(`<@${user.id}> 已遠離我們而去。`);
-        const msg = leaveMessageContent.replace(/<user>/g, ` <@${user.id}> `).replace(/<server>/g, ` **${guild.name}** `);
+        const msg = leaveMessageContent.replace(/<user>/g, `<@${user.id}>`).replace(/<server>/g, `**${guild.name}**`);
         channel.send(msg);
+
+        DCAccess.log(`送別訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
+
+    // 資料控制相關
 
     /**
      * 
@@ -174,13 +286,11 @@ module.exports = class GuildData {
      */
     update() {
         const name = DCAccess.getGuild(this.#guildId).name;
-        const db = DB.getConnection();
         db.prepare(`UPDATE ${process.env.MAINTABLE} SET name = ?, recordAt = ? WHERE id = ?`)
             .run(name, localISOTimeNow(), this.#guildId);
     }
 
     delete() {
-        const db = DB.getConnection();
         const { count, name } = db.prepare(`SELECT COUNT(*) as count, name FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId);
         if(count === 0) return;
 

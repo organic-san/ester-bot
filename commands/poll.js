@@ -1,8 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('poll')
 		.setDescription('舉辦投票')
         .addSubcommand(opt => 
@@ -78,17 +77,17 @@ module.exports = {
 
             const emojisSelect = [];
 
-            const embedlperPoll = new Discord.MessageEmbed()
+            const embedlperPoll = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(`⏱️投票生成中...`)
                 .setTimestamp()
 
             const poll = await interaction.reply({embeds:[embedlperPoll], fetchReply: true});
 
-            const embedlPoll = new Discord.MessageEmbed()
+            const embedlPoll = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(title)
-                .setAuthor({name: `由 ${interaction.user.tag} 提出本次投票`, iconURL: interaction.user.displayAvatarURL({dynamic: true})})
+                .setAuthor({name: `由 ${interaction.user.tag} 提出本次投票`, iconURL: interaction.user.displayAvatarURL({extension: "png"})})
                 .setTimestamp()
                 .setFooter({text: "poll:點選與選項相同的表情符號即可投票"});
             
@@ -98,13 +97,13 @@ module.exports = {
 
             if(optionList.length > 0) {
                 optionList.forEach((opt, index) => {
-                    embedlPoll.addField(`選項${emojis[index]}`, opt, true)
+                    embedlPoll.addFields({name: `選項${emojis[index]}`, value: opt, inline: true});
                     emojisSelect.push(emojis[index]);
                 });
             } else {
                 emojisSelect.push('⭕', '❌');
             }
-            embedlPoll.addField("這則的訊息ID", `\`${poll.id}\``)
+            embedlPoll.addFields({name: "這則的訊息ID", value: `\`${poll.id}\``});
 
             await interaction.editReply({embeds: [embedlPoll]});
             if(poll instanceof Discord.Message) {
@@ -123,7 +122,7 @@ module.exports = {
 
             const messageId = interaction.options.getString('message-id');
             const channel = interaction.options.getChannel('channel') ?? interaction.channel;
-            if(!channel.isText()) return interaction.reply({content: '⚠️這個頻道似乎不是文字頻道。', ephemeral: true});
+            if(channel.type !== Discord.ChannelType.GuildText) return interaction.reply({content: '⚠️這個頻道似乎不是文字頻道。', ephemeral: true});
             const pollResult = await channel.messages.fetch(messageId).catch(() => {});
             
             if(!pollResult) return interaction.reply({content: "⚠️無法在這個頻道中找到該訊息ID的訊息", ephemeral: true});
@@ -131,7 +130,7 @@ module.exports = {
             if(!pollResult.embeds[0].footer?.text?.startsWith('poll')) 
                 return interaction.reply({content: "⚠️在該訊息ID的訊息中找不到投票", ephemeral: true});
 
-            const embedlPollresult = new Discord.MessageEmbed()
+            const embedlPollresult = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(`${pollResult.embeds[0].title} 的投票結果`)
                 .setAuthor({name: pollResult.embeds[0].author.name, iconURL: pollResult.embeds[0].author.iconURL})
@@ -140,7 +139,7 @@ module.exports = {
             let maxCount = 0;
             let total = 0;
             let pollOptions = [[""]];
-            if(pollResult.embeds[0].fields.length === 1){d
+            if(pollResult.embeds[0].fields.length === 1){
                 const circle = pollResult.reactions.cache.get('⭕').count - 1;
                 const cross = pollResult.reactions.cache.get('❌').count - 1;
                 pollOptions = [['⭕', "", circle], ['❌', "", cross]];
@@ -167,9 +166,9 @@ module.exports = {
                 for(let i = 0; i <= ((element[2] / maxCount) * 70 - 0.5) ; i++){
                     pollProportion += "\\|";
                 }
-                embedlPollresult.addField(title, pollProportion)
+                embedlPollresult.addFields({name: title, value: pollProportion, inline: false})
             });
-            embedlPollresult.addField(`投票連結`, `[點一下這裡](${pollResult.url})`)
+            embedlPollresult.addFields({name: "投票連結", value: `[點一下這裡](${pollResult.url})`, inline: false})
             interaction.reply({ embeds: [embedlPollresult] });
         }
 	},

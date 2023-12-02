@@ -1,16 +1,17 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('tic-tac-toe')
         .setDescription('來比一場圈圈叉叉吧!')
         .addNumberOption(opt => 
             opt.setName('difficulty')
             .setDescription('選擇對手的強度')
-            .addChoice('簡單', 1)
-            .addChoice('中等', 2)
-            .addChoice('困難', 3)
+            .addChoices(
+                {name: "簡單", value: 1},
+                {name: "中等", value: 2},
+                {name: "困難", value: 3}
+            )
             .setRequired(true)
         ),
     tag: "interaction",
@@ -176,25 +177,18 @@ function checkPoint(textLine) {
  * @returns 
  */
 function winCheck(playingArray) {
-    //橫
-    for(let i = 0; i < 3; i++){
-        if(Math.abs(playingArray[i * 3 + 0] + playingArray[i * 3 + 1] + playingArray[i * 3 + 2]) === 3) {
-            return playingArray[i * 3 + 0];
+    const winConditions = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // 橫
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // 直
+        [0, 4, 8], [2, 4, 6] // 斜
+    ];
+    for (const condition of winConditions) {
+        const sum = playingArray[condition[0]] + playingArray[condition[1]] + playingArray[condition[2]];
+        if (Math.abs(sum) === 3) {
+            return playingArray[condition[0]];
         }
     }
-    //直
-    for(let i = 0; i < 3; i++){
-        if(Math.abs(playingArray[0 + i] + playingArray[3 + i] + playingArray[6 + i]) === 3) {
-            return playingArray[0 + i];
-        }
-    }
-    //斜
-    if(Math.abs(playingArray[0] + playingArray[4] + playingArray[8]) === 3)
-        return playingArray[0];
-    if(Math.abs(playingArray[2] + playingArray[4] + playingArray[6]) === 3)
-        return playingArray[2];
     return 0;
-    
 }
 
 /**
@@ -204,58 +198,22 @@ function winCheck(playingArray) {
  * @returns 
  */
 function rowCreate(playingArray, isEndgame) {
-    return [
-        new Discord.MessageActionRow()
-            .addComponents([
-                new Discord.MessageButton()
-                    .setLabel(playingArray[0] === 0 ? '-' : (playingArray[0] === 1 ? '○' : '×'))
-                    .setCustomId('1')
-                    .setStyle(playingArray[0] === 0 ? 'SECONDARY' : (playingArray[0] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[0] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[1] === 0 ? '-' : (playingArray[1] === 1 ? '○' : '×'))
-                    .setCustomId('2')
-                    .setStyle(playingArray[1] === 0 ? 'SECONDARY' : (playingArray[1] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[1] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[2] === 0 ? '-' : (playingArray[2] === 1 ? '○' : '×'))
-                    .setCustomId('3')
-                    .setStyle(playingArray[2] === 0 ? 'SECONDARY' : (playingArray[2] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[2] === 0 && !isEndgame ? false : true),
-                ]), new Discord.MessageActionRow()
-            .addComponents([
-                new Discord.MessageButton()
-                    .setLabel(playingArray[3] === 0 ? '-' : (playingArray[3] === 1 ? '○' : '×'))
-                    .setCustomId('4')
-                    .setStyle(playingArray[3] === 0 ? 'SECONDARY' : (playingArray[3] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[3] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[4] === 0 ? '-' : (playingArray[4] === 1 ? '○' : '×'))
-                    .setCustomId('5')
-                    .setStyle(playingArray[4] === 0 ? 'SECONDARY' : (playingArray[4] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[4] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[5] === 0 ? '-' : (playingArray[5] === 1 ? '○' : '×'))
-                    .setCustomId('6')
-                    .setStyle(playingArray[5] === 0 ? 'SECONDARY' : (playingArray[5] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[5] === 0 && !isEndgame ? false : true),
-                ]), new Discord.MessageActionRow()
-            .addComponents([
-                new Discord.MessageButton()
-                    .setLabel(playingArray[6] === 0 ? '-' : (playingArray[6] === 1 ? '○' : '×'))
-                    .setCustomId('7')
-                    .setStyle(playingArray[6] === 0 ? 'SECONDARY' : (playingArray[6] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[6] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[7] === 0 ? '-' : (playingArray[7] === 1 ? '○' : '×'))
-                    .setCustomId('8')
-                    .setStyle(playingArray[7] === 0 ? 'SECONDARY' : (playingArray[7] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[7] === 0 && !isEndgame ? false : true),
-                new Discord.MessageButton()
-                    .setLabel(playingArray[8] === 0 ? '-' : (playingArray[8] === 1 ? '○' : '×'))
-                    .setCustomId('9')
-                    .setStyle(playingArray[8] === 0 ? 'SECONDARY' : (playingArray[8] === 1 ? 'SUCCESS' : 'DANGER'))
-                    .setDisabled(playingArray[8] === 0 && !isEndgame ? false : true),
-        ])
-    ];
+    const buttons = playingArray.map((value, index) => {
+        const label = value === 0 ? '-' : (value === 1 ? '○' : '×');
+        const style = value === 0 ? Discord.ButtonStyle.Secondary : (value === 1 ? Discord.ButtonStyle.Success : Discord.ButtonStyle.Danger);
+        const disabled = value === 0 && !isEndgame ? false : true;
+        
+        return new Discord.ButtonBuilder()
+            .setLabel(label)
+            .setCustomId((index + 1).toString())
+            .setStyle(style)
+            .setDisabled(disabled);
+    });
+
+    const rows = [];
+    for (let i = 0; i < 3; i++) {
+        rows.push(new Discord.ActionRowBuilder().addComponents(buttons.slice(i * 3, i * 3 + 3)));
+    }
+
+    return rows;
 }

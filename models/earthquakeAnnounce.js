@@ -1,11 +1,11 @@
 const Discord = require('discord.js');
 const fetch = require('node-fetch');
 
-const DCAccess = require('../../class/discordAccess');
-const Record = require('../../class/record');
-const GuildDataMap = require('../../class/guildDataMap');
+const DCAccess = require('../class/discordAccess');
+const Record = require('../class/record');
+const GuildDataMap = require('../class/guildDataMap');
 
-const textCommand = require('../../class/textModule');
+const textCommand = require('../class/textModule');
 require('dotenv').config();
 
 let guildDataMap = new GuildDataMap(); 
@@ -46,16 +46,18 @@ const earthquake = async (url) => {
 
 const announcement = async (msgList, level) => {
     for(i of msgList) {
-        const embed = new Discord.MessageEmbed()
+        const embed = new Discord.EmbedBuilder()
             .setColor(process.env.EMBEDCOLOR)
             .setTitle(`🚨 地震警報 🚨`)
             .setURL(i.web)
             .setDescription(i.conc)
-            .addField('📍 震央位置', `${i.loc}`, false)
-            .addField('⏰ 發生時間', `${i.eqTime}`, true)
-            .addField('💥 芮氏規模', `${i.val}`, true)
-            .addField('🌍 深度', `${i.dep} 公里`, true)
-            .addField('_ _', "注意地震安全，保持冷靜勿驚慌，並做好防震準備。")
+            .addFields(
+                { name: '📍 震央位置', value: `${i.loc}` },
+                { name: '⏰ 發生時間', value: `${i.eqTime}`, inline: true },
+                { name: '💥 芮氏規模', value: `${i.val}`, inline: true },
+                { name: '🌍 深度', value: `${i.dep} 公里`, inline: true },
+                { name: '_ _', value: "注意地震安全，保持冷靜勿驚慌，並做好防震準備。" }
+            )
             .setImage(i.img)
             .setTimestamp()
             .setFooter({ text: `ester bot 地震通知 | 資料來源: 交通部中央氣象局`, iconURL: DCAccess.client.avatar})
@@ -63,12 +65,11 @@ const announcement = async (msgList, level) => {
         guildDataMap.announceEarthquake(level, embed);
 
         // 時間記錄更新
-        const lastSmallEarthquakeTime = Record.get("lastSmallEarthquakeTime");
-        const lastHugeEarthquakeTime = Record.get("lastHugeEarthquakeTime");
-        const lastDate = new Date((level === 1 ? lastSmallEarthquakeTime : lastHugeEarthquakeTime) || "2023-08-01T00:00:00");
+        const lastEqTime = Record.get(level === small ? "lastSmallEarthquakeTime" : "lastHugeEarthquakeTime");
+        const lastDate = new Date(lastEqTime || "2023-08-01T00:00:00");
         const newDate = new Date(i.eqTime);
         if(newDate - lastDate > 0) {
-            level === small ? (Record.set("lastSmallEarthquakeTime", newDate.getTime())) : (Record.set("lastHugeEarthquakeTime", newDate.getTime()));
+            Record.set((level === small ? "lastSmallEarthquakeTime" : "lastHugeEarthquakeTime"), newDate.getTime() + 1000);
         }
     }
 }

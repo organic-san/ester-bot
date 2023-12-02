@@ -1,13 +1,13 @@
 const Discord = require('discord.js');
 
-const DCAccess = require('../../class/discordAccess');
-const GuildDataMap = require('../../class/guildDataMap');
+const DCAccess = require('../class/discordAccess');
+const GuildDataMap = require('../class/guildDataMap');
 
-const prefix = require('../../JSONHome/prefix.json');
+const prefix = require('../JSONHome/prefix.json');
 
 const guildDataMap = new GuildDataMap();
 
-DCAccess.on('messageCreate', 
+DCAccess.on(Discord.Events.MessageCreate, 
 
     /**
      * 
@@ -25,9 +25,9 @@ DCAccess.on('messageCreate',
         const splitText = /\s+/;
         
         // 權限判斷
-        if(!DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.SEND_MESSAGES) ||
-            !DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.ADD_REACTIONS) ||
-            !DCAccess.permissionsCheck(msg.channel, Discord.Permissions.FLAGS.VIEW_CHANNEL))
+        if(!DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.SendMessages) ||
+            !DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.AddReactions) ||
+            !DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ViewChannel))
             return;
 
         // 前輟定義與發送isCommand確認
@@ -162,8 +162,10 @@ DCAccess.on('messageCreate',
                     case 'addexp':
                         if(!word[1]) return;
                         if(Number.isNaN(parseInt(word[1]))) return;
-                        const guildUser = await guildDataMap.get(msg.guild.id).getUser(msg.author.id);
-                        guildUser.addexp(parseInt(word[1]), msg.channel, true, true);
+                        let guildUser;
+                        if(word[2]) guildUser = await guildDataMap.get(msg.guild.id).getUser(word[1]);
+                        else guildUser = await guildDataMap.get(msg.guild.id).getUser(msg.author.id);
+                        guildUser?.addexp(parseInt(word[word.length - 1]), msg.channel, true, true);
                         break;
 
                     case 'backup':

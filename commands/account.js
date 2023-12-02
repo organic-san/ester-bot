@@ -1,8 +1,7 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('account')
 		.setDescription('查詢用戶的相關資訊')
         .addSubcommand(opt => 
@@ -22,15 +21,17 @@ module.exports = {
             .addIntegerOption(opt => 
                 opt.setName('size')
                 .setDescription('所要的圖片大小')
-                .addChoice("16", 16)
-                .addChoice("32", 32)
-                .addChoice("64", 64)
-                .addChoice("128", 128)
-                .addChoice("256", 256)
-                .addChoice("512", 512)
-                .addChoice("1024", 1024)
-                .addChoice("2048", 2048)
-                .addChoice("4096", 4096)
+                .addChoices(
+                    {name: "16", value: 16},
+                    {name: "32", value: 32},
+                    {name: "64", value: 64},
+                    {name: "128", value: 128},
+                    {name: "256", value: 256},
+                    {name: "512", value: 512},
+                    {name: "1024", value: 1024},
+                    {name: "2048", value: 2048},
+                    {name: "4096", value: 4096}
+                )
             )
         ),
 	tag: "interaction",
@@ -48,7 +49,7 @@ module.exports = {
 
 		} else if (interaction.options.getSubcommand() === 'avatar') {
 
-            const embed = new Discord.MessageEmbed()
+            const embed = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR);
 
 			const user = interaction.options.getUser('user') ?? interaction.user;
@@ -56,20 +57,26 @@ module.exports = {
 
             if(!user) {
                 embed.setDescription(`這是你的的頭像網址`)
-                    .addField(`頭像網址(${size}×${size})`, 
-                        `[png](${user.displayAvatarURL({dynamic: true, format: "png", size: size})}) | ` +
-                        `[jpg](${user.displayAvatarURL({dynamic: true, format: "jpg", size: size})}) | ` +
-                        `[webp](${user.displayAvatarURL({dynamic: true, format: "webp", size: size})})`)
+                    .addFields(
+                        {name: `頭像網址(${size}×${size})`, value:
+                            `[png](${interaction.user.displayAvatarURL({extension: "png", size: size})}) | ` +
+                            `[jpg](${interaction.user.displayAvatarURL({extension: "jpg", size: size})}) | ` +
+                            `[webp](${interaction.user.displayAvatarURL({extension: "webp", size: size})})`
+                        },
+                    )
                     .setThumbnail(interaction.user.displayAvatarURL({dynamic: true, format: "png", size: size}));
                 interaction.reply({embeds: [embed]});
 
-            }else {
+            } else {
                 embed.setDescription(`這是 ${user.tag} 的的頭像網址`)
-                    .addField(`頭像網址(${size}×${size})`, 
-                        `[png](${user.displayAvatarURL({dynamic: true, format: "png", size: size})}) | ` +
-                        `[jpg](${user.displayAvatarURL({dynamic: true, format: "jpg", size: size})}) | ` +
-                        `[webp](${user.displayAvatarURL({dynamic: true, format: "webp", size: size})})`)
-                    .setThumbnail(user.displayAvatarURL({dynamic: true, format: "png", size: size}));
+                    .addFields(
+                        {name: `頭像網址(${size}×${size})`, value:
+                            `[png](${user.displayAvatarURL({extension: "png", size: size})}) | ` +
+                            `[jpg](${user.displayAvatarURL({extension: "jpg", size: size})}) | ` +
+                            `[webp](${user.displayAvatarURL({extension: "webp", size: size})})`
+                        },
+                    )
+                    .setThumbnail(user.displayAvatarURL({extension: "png", size: size}));
                 interaction.reply({embeds: [embed]});
             }
 		}

@@ -1,18 +1,20 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('minesweeper')
         .setDescription('產生一張踩地雷遊戲')
         .addIntegerOption(opt => 
             opt.setName('size')
                 .setDescription('踩地雷的大小')
                 .setRequired(true)
-                .addChoice("8×8", 8)
-                .addChoice("10×10", 10)
-                .addChoice("12×12", 12)
-                .addChoice("14×14", 14)
+                .addChoices(
+                    {name: "6 × 6", value: 6},
+                    {name: "8 × 8", value: 8},
+                    {name: "10 × 10", value: 10},
+                    {name: "12 × 12", value: 12},
+                    {name: "14 × 14", value: 14}
+                )
         ),
     tag: "interaction",
     /**

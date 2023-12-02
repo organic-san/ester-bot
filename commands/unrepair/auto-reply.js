@@ -93,7 +93,7 @@ module.exports = {
         
         } else {
             //權限
-            if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+            if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)){ 
                 return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
             }
         }
@@ -162,11 +162,11 @@ module.exports = {
  * @param {guildInfo.GuildInformation} element 該伺服器的資訊
  * @param {number} page 頁數
  * @param {number} pageShowHax 單頁上限 
- * @returns 包含排名的Discord.MessageEmbed
+ * @returns 包含排名的Discord.Embed
  */
  function reactionsShow(guild, element, page, pageShowHax){
     //#region 等級排行顯示清單 
-    let embed = new Discord.MessageEmbed()
+    let embed = new Discord.EmbedBuilder()
         .setTitle(`${guild.name} 的專屬伺服器反映`)
         .setColor(process.env.EMBEDCOLOR)                                
         .setThumbnail(`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.jpg`)
@@ -174,7 +174,7 @@ module.exports = {
         ` / #${element.reactionsMuch}`);
     element.reaction.slice(page * pageShowHax, page * pageShowHax + pageShowHax).forEach(element => {
         const mode = element.mode > 1 ? "部分相符" : "完全相符";
-        if(element) embed.addField(`ID: ${element.id}`, `訊息: ${element.react}\n回覆: ${element.reply}\n模式: ${mode}`, true);
+        if(element) embed.addFields({name: `ID: \`${element.id}\``, value: `訊息: \`${element.trigger}\`\n回覆: \`${element.reply}\`\n模式: \`${mode}\``, inline: false});
     })
 
     return embed;

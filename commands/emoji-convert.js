@@ -1,25 +1,24 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
+
 const Discord = require('discord.js');
-const guild = require('../class/guildInformation');
+const GuildDataMap = require('../class/guildDataMap');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('emoji-convert')
 		.setDescription('表情符號轉換功能，轉換後的訊息會用跟你的頭像一樣的機器人代為發送')
         .addStringOption(opt => 
             opt.setName("message")
-            .setDescription('要轉換的訊息，在這裡輸入的:emoji:都會轉換成真正的表情符號!')
+            .setDescription('要轉換的訊息，在這裡輸入的:emoji:都會轉換成真正的表情符號！(可以用\\n換行)')
             .setRequired(true)
         ),
-	tag: "guildInfo",
+	tag: "interaction",
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
-     * @param {guild.GuildInformation} guildInformation 
      */
-	async execute(interaction, guildInformation) {
+	async execute(interaction) {
         const message = interaction.options.getString('message');
-        if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS)) 
+        if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks)) 
             return interaction.reply({content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true}).catch((err) => console.log(err));
 
         if(interaction.channel.isThread())
@@ -52,27 +51,28 @@ module.exports = {
         let words = [];
         for(let i = 0; i < notEmoji.length * 2 - 1; i++)
             i % 2 ? words.push(isEmoji[(i-1)/2]) : words.push(notEmoji[i/2]);
-        words = words.join("").split(" ").join("\n");
+        words = words.join("").split("\\n").join("\n");
 
         const webhooks = await interaction.channel.fetchWebhooks();
         let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
         if(!webhook) {
-            interaction.channel.createWebhook(interaction.member.displayName, {
-                avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+            interaction.channel.createWebhook({
+                name: interaction.member.displayName,
+                avatar: interaction.user.displayAvatarURL({extension: "png"})
             })
                 .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
                 .catch(console.error);
         } else {
             await webhook.edit({
                 name: interaction.member.displayName,
-                avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+                avatar: interaction.user.displayAvatarURL({extension: "png"})
             })
                 .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
                 .catch(console.error);
         }
 
         /*
-        if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)) return;
+        if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)) return;
         const cmd = await interaction.reply({
             content: `自動表情符號轉換功能 目前狀態: ${guildInformation.emojiTrans ? "開啟" : "停用"}`, 
             components: [new Discord.MessageActionRow().addComponents([
@@ -100,7 +100,7 @@ module.exports = {
             }).catch(() => {});
         }
         /*
-        if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+        if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)){ 
             return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
         }
 

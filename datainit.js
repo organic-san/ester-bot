@@ -1,10 +1,18 @@
 const fs = require('fs');
-const Database = require('better-sqlite3');
-const db = new Database('data/server_data.db')
-const { localISOTimeNow } = require("./class/textModule.js")
 require('dotenv').config();
+const Database = require('better-sqlite3');
 
+if(fs.existsSync(process.env.DATABASE_URL)) {
+    fs.unlinkSync(process.env.DATABASE_URL);
+}
+
+const db = new Database(process.env.DATABASE_URL);
+const { localISOTimeNow } = require("./class/textModule.js");
+
+// ====================================================================================================
 // server data table
+
+
 db.prepare(`
 CREATE TABLE IF NOT EXISTS ${process.env.MAINTABLE} (
     id TEXT PRIMARY KEY,
@@ -28,8 +36,8 @@ CREATE TABLE IF NOT EXISTS ${process.env.MAINTABLE} (
 `).run();
 
 // ====================================================================================================
-
 // Record table
+
 db.prepare(`
     CREATE TABLE IF NOT EXISTS ${process.env.RECORDTABLE} (
     ConfigKey VARCHAR(255) PRIMARY KEY,
@@ -37,65 +45,125 @@ db.prepare(`
     )
 `).run();
 
-
 const recordInsert = db.prepare(`INSERT INTO ${process.env.RECORDTABLE} (ConfigKey, ConfigValue) VALUES (?, ?)`);
+const dataPath = "./data/record.json";
 
-const recordList = JSON.parse(fs.readFileSync('./data/record.json', 'utf8'));
+if(fs.existsSync(dataPath)) {
+    const recordData = fs.readFileSync(dataPath, 'utf8');
+    const recordList = JSON.parse(recordData);
 
-recordInsert.run('messageCount', recordList.messageCount);
-recordInsert.run('interactionCount', recordList.interactionCount);
+    recordInsert.run('messageCount', recordList.messageCount);
+    recordInsert.run('interactionCount', recordList.interactionCount);
 
-const recordListInteraction = recordList.interaction;
-for (const key of Object.keys(recordListInteraction)) {
-    recordInsert.run(`interaction_${key}`, recordListInteraction[key]);
+    const recordListInteraction = recordList.interaction;
+    for (const key of Object.keys(recordListInteraction)) {
+        recordInsert.run(`interaction_${key}`, recordListInteraction[key]);
+    }
+
+    recordInsert.run('user_join', recordList.user.join);
+    recordInsert.run('user_leave', recordList.user.leave);
+
+    recordInsert.run('bot_join', recordList.bot.join);
+    recordInsert.run('bot_leave', recordList.bot.leave);
+
+    recordInsert.run('maxiumYachtScore', recordList.maxiumYachtScore);
+    recordInsert.run('weeklyYachtScore', recordList.weeklyYachtScore);
+    recordInsert.run('weeklyYachtScoreWeek', recordList.weeklyYachtScoreWeek);
+
+    recordInsert.run('happyBeamCount', recordList.happyBeamCount);
+    recordInsert.run('emojiTransCount', 0);
+
+    recordInsert.run('lastSmallEarthquakeTime', Date.now());
+    recordInsert.run('lastHugeEarthquakeTime', Date.now());
+} else {
+
+    recordInsert.run('messageCount', 0);
+    recordInsert.run('interactionCount', 0);
+
+    const commandFiles = fs.readdirSync('./commands')?.filter(file => file.endsWith('.js'));
+    if(commandFiles) {
+        for (const key of commandFiles) {
+            recordInsert.run(`interaction_${key}`, 0);
+        }
+    }
+    
+
+    recordInsert.run('user_join', 0);
+    recordInsert.run('user_leave', 0);
+
+    recordInsert.run('bot_join', 0);
+    recordInsert.run('bot_leave', 0);
+
+    recordInsert.run('maxiumYachtScore', 0);
+    recordInsert.run('weeklyYachtScore', 0);
+    recordInsert.run('weeklyYachtScoreWeek', 0);
+
+    recordInsert.run('happyBeamCount', 0);
+    recordInsert.run('emojiTransCount', 0);
+
+    recordInsert.run('lastSmallEarthquakeTime', Date.now());
+    recordInsert.run('lastHugeEarthquakeTime', Date.now());
 }
 
-recordInsert.run('user_join', recordList.user.join);
-recordInsert.run('user_leave', recordList.user.leave);
-
-recordInsert.run('bot_join', recordList.bot.join);
-recordInsert.run('bot_leave', recordList.bot.leave);
-
-recordInsert.run('maxiumYachtScore', recordList.maxiumYachtScore);
-recordInsert.run('weeklyYachtScore', recordList.weeklyYachtScore);
-recordInsert.run('weeklyYachtScoreWeek', recordList.weeklyYachtScoreWeek);
-
-recordInsert.run('happyBeamCount', recordList.happyBeamCount);
-recordInsert.run('emojiTransCount', 0);
-
-recordInsert.run('lastSmallEarthquakeTime', Date.now());
-recordInsert.run('lastHugeEarthquakeTime', Date.now());
 
 // ====================================================================================================
-
 // each server data table
-let guildList = fs.readFileSync('data/guildInfo/guildlist.json', 'utf8');
+
+const filePath = 'data/guildInfo/guildlist.json';
+if(!fs.existsSync(filePath)) return;
+
+const serverDataArray = [];
 const insertServerData = db.prepare(`
     INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `);
+const serverDataTrans = db.transaction((list) => {
+    for (const server of list) {
+        insertServerData.run(
+            server.id,
+            server.joinedAt,
+            server.recordAt,
+            server.name,
+            server.joinMessage ? 1 : 0,
+            server.leaveMessage ? 1 : 0,
+            server.joinMessageContent,
+            server.leaveMessageContent,
+            server.joinChannel,
+            server.leaveChannel,
+            server.levels ? 1 : 0,
+            server.levelsReact,
+            server.levelsReactChannel,
+            server.emojiTrans ? 1 : 0,
+            server.reactionsCount,
+            server.earthquakeAnnounceChannel,
+            server.earthquakeAnnounceLevel
+        );
+    }
+});
+
+let guildList = fs.readFileSync(filePath, 'utf8');
 JSON.parse(guildList).forEach(e => {
     const jsonData = fs.readFileSync('data/guildInfo/' + e + '.json', 'utf8');
     const serverData = JSON.parse(jsonData);
 
-    insertServerData.run(
-        serverData.id,
-        serverData.joinedAt,
-        serverData.recordAt,
-        serverData.name,
-        serverData.joinMessage ? 1 : 0,
-        serverData.leaveMessage ? 1 : 0,
-        serverData.joinMessageContent,
-        serverData.leaveMessageContent,
-        serverData.joinChannel,
-        serverData.leaveChannel,
-        serverData.levels ? 1 : 0,
-        serverData.levelsReact,
-        serverData.levelsReactChannel,
-        serverData.emojiTrans ? 1 : 0,
-        serverData.reactionsCount,
-        serverData.earthquakeAnnounceChannel,
-        serverData.earthquakeAnnounceLevel
-    );
+    serverDataArray.push({
+        id: serverData.id,
+        joinedAt: serverData.joinedAt,
+        recordAt: serverData.recordAt,
+        name: serverData.name,
+        joinMessage: serverData.joinMessage,
+        leaveMessage: serverData.leaveMessage,
+        joinMessageContent: serverData.joinMessageContent,
+        leaveMessageContent: serverData.leaveMessageContent,
+        joinChannel: serverData.joinChannel,
+        leaveChannel: serverData.leaveChannel,
+        levels: serverData.levels,
+        levelsReact: serverData.levelsReact,
+        levelsReactChannel: serverData.levelsReactChannel,
+        emojiTrans: serverData.emojiTrans,
+        reactionsCount: serverData.reactionsCount,
+        earthquakeAnnounceChannel: serverData.earthquakeAnnounceChannel,
+        earthquakeAnnounceLevel: serverData.earthquakeAnnounceLevel
+    });
 
     // Create tables for user data for each server
     db.prepare(`
@@ -114,17 +182,27 @@ JSON.parse(guildList).forEach(e => {
     const insertUserData = db.prepare(`
         INSERT INTO ${process.env.USERTABLE}${serverData.id} VALUES (?, ?, ?, ?, ?, ?, ?)
     `);
+    const userDataTrans = db.transaction((list) => {
+        for (const user of list) {
+            insertUserData.run(user.id, user.tag, user.DM, user.exp, user.chips, user.msgs, user.levels);
+        }
+    });
+
+    const userDataArray = [];
     for (const user of serverData.users) {
-        insertUserData.run(
-            user.id,
-            user.tag,
-            user.DM ? 1 : 0,
-            user.exp,
-            user.chips,
-            user.msgs,
-            user.levels
-        );
+        userDataArray.push({
+            id: user.id,
+            tag: user.tag,
+            DM: user.DM ? 1 : 0,
+            exp: user.exp,
+            chips: user.chips,
+            msgs: user.msgs,
+            levels: user.levels
+        });
     }
+    userDataTrans(userDataArray);
 });
+
+serverDataTrans(serverDataArray);
 
 db.close();
