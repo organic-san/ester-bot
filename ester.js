@@ -71,6 +71,10 @@ client.once(Discord.Events.ClientReady, async () => {
         }, 24 * 60 * 60 * 1000);
     }
 
+    setInterval(() => {
+        client.channels.cache.get(process.env.LIFETIME_CH_ID).send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
+    })
+
     // 每日備份
     setInterval(() => {
         guildDataMap.backup();

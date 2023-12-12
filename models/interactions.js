@@ -42,10 +42,6 @@ DCAccess.on(Discord.Events.InteractionCreate,
     // 斜線指令處理
 	try {
         if(command.tag === "interaction") await command.execute(interaction);
-        // TODO: 確實廢除這3個tag
-		// if(command.tag === "guildInfo") await command.execute(interaction, guildDataMap.get(interaction.guild.id));
-        // if(command.tag === "guildInfoRecord") await command.execute(interaction, guildDataMap.get(interaction.guild.id));
-        // if(command.tag === "record") await command.execute(interaction);
 	} catch (error) {
 		console.error(error);
         textModule.createErrorLog(error);
