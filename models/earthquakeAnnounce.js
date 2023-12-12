@@ -60,7 +60,7 @@ const announcement = async (msgList, level) => {
             )
             .setImage(i.img)
             .setTimestamp()
-            .setFooter({ text: `ester bot 地震通知 | 資料來源: 交通部中央氣象局`, iconURL: DCAccess.client.avatar})
+            .setFooter({ text: `ester bot 地震通知 | 資料來源: 交通部中央氣象署`, iconURL: DCAccess.client.avatar})
         
         guildDataMap.announceEarthquake(level, embed);
 

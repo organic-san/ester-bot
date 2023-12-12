@@ -45,7 +45,7 @@ module.exports = {
         if (interaction.options.getSubcommand() === 'show') {
             const reactionList = guild.getReactionData();
 
-            if(reactionList.length === 0) return interaction.reply('這個伺服器並沒有設定專屬反應。');
+            if(reactionList.length === 0) return interaction.reply('這個伺服器並沒有設定專屬反應，不如透過 \`/auto-reply add\` 新增看看？');
 
             const pageShowHax = 12;
             let page = 0;
@@ -123,7 +123,7 @@ module.exports = {
             //是否為指令
             
             const id = guild.addReaction(triggerMessage, replyMessage);
-            interaction.reply(`設定完成，已新增已下反應: \n\nID: \`${id}\`\n訊息: \`${triggerMessage}\`\n回覆: \`${replyMessage}\``);
+            interaction.reply(`設定完成，已新增已下反應: \n\nID: ${id}\n訊息: ${triggerMessage}\n回覆: ${replyMessage}`);
 
         //移除
         } else if (interaction.options.getSubcommand() === 'remove') {
@@ -140,7 +140,7 @@ module.exports = {
             }
 
             guild.deleteReaction(replyId);
-            interaction.reply(`成功移除反應: \n\n訊息: \`${reaction.react}\`\n回覆: \`${reaction.reply}\``);
+            interaction.reply(`成功移除反應: \n\n訊息: ${reaction.react}\n回覆: ${reaction.reply}`);
 
         //重置
         } else if (interaction.options.getSubcommand() === 'reset') {

@@ -119,6 +119,6 @@ DCAccess.on(Discord.Events.MessageCreate,
         if(!reaction) return;
         await msg.channel.sendTyping();
         msg.channel.send(reaction);
-        console.log("isCommand: false: isReaction");
+        console.log("自動回覆觸發");
         Record.increase("autoReplyCount");
 });

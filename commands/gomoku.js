@@ -109,7 +109,7 @@ module.exports = {
         await mainMsg.edit("對方同意遊玩邀請了! 即將開始遊戲...").catch(() => {});
         //await p2btn.update({content: "即將開始遊戲...", components: []})
 
-        let player = offensive <= 2 ? offensive : Math.floor(Math.random() * 2) + 1;
+        let player = offensive > 0 ? offensive : Math.floor(Math.random() * 2) + 1;
         const kuro = player;
         let step = 0;
         let board = new Gomoku();

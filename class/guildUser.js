@@ -74,7 +74,7 @@ module.exports = class User {
     }
 
     async update() {
-        if(this.#lastTagChangeTime - Date.now() < 24 * 60 * 60 * 1000) return;
+        if(Date.now() - this.#lastTagChangeTime < 24 * 60 * 60 * 1000) return;
         const user = await DCAccess.getUser(this.#userId);
         db.prepare(`UPDATE ${this.#DBName} SET tag = ? WHERE userId = ?`).run(user.tag, this.#userId);
         this.#lastTagChangeTime = Date.now();

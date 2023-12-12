@@ -260,7 +260,7 @@ module.exports = {
 
         //顯示設定
         } else if(interaction.options.getSubcommand() === 'show') {
-            const levelsisworking = guild.isLevelsOpen() ? "啟用" : "停用";
+            const levelsisworking = guild.isLevelsOpen() ? "\`🟢開啟\`" : "\`🔴關閉\`";
             const levelsReact = guild.getLevelsMode();
             const levelsReactType = levelsReact === "MessageChannel" ? "升級當下的頻道" :
                 levelsReact === "SpecifyChannel" ? "指定的頻道" :
