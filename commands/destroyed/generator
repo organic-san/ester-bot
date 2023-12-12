@@ -30,7 +30,7 @@ module.exports = {
      */
 	async execute(interaction) {
         if(interaction.options.getSubcommand() === 'fat-nerd-style') {
-            if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS))
+            if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks))
                 return interaction.reply({content: "請先賦予我管理webhook的權限!", ephemeral: true});
             if(interaction.channel.isThread()) return interaction.reply({content: "不能在討論串中使用本功能!", ephemeral: true});
             interaction.reply({content: "發送中......", ephemeral: true});
@@ -57,21 +57,21 @@ module.exports = {
             let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
             if(!webhook) {
                 webhook = await interaction.channel.createWebhook(interaction.member.displayName, {
-                    avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+                    avatar: interaction.user.displayAvatarURL({extension: "png"})
                 })
                     .then(webhook => webhook.send({content: content, allowedMentions: {repliedUser: false}}))
                     .catch(console.error);
             }else{
                 webhook.edit({
                     name: interaction.member.displayName,
-                    avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+                    avatar: interaction.user.displayAvatarURL({extension: "png"})
                 })
                     .then(webhook => webhook.send({content: content, allowedMentions: {repliedUser: false}}))
                     .catch(console.error);
             }
 
         }else if(interaction.options.getSubcommand() === 'order-doesnt-matter') {
-            if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.Permissions.FLAGS.MANAGE_WEBHOOKS))
+            if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks))
                 return interaction.reply({content: "請先賦予我管理webhook的權限!", ephemeral: true});
             if(interaction.channel.isThread()) return interaction.reply({content: "不能在討論串中使用本功能!", ephemeral: true});
             interaction.reply({content: "發送中......", ephemeral: true});
@@ -111,14 +111,14 @@ module.exports = {
             let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
             if(!webhook) {
                 webhook = await interaction.channel.createWebhook(interaction.member.displayName, {
-                    avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+                    avatar: interaction.user.displayAvatarURL({extension: "png"})
                 })
                     .then(webhook => webhook.send({content: content, allowedMentions: {repliedUser: false}}))
                     .catch(console.error);
             }else{
                 webhook.edit({
                     name: interaction.member.displayName,
-                    avatar: interaction.user.displayAvatarURL({dynamic: true, format: "png"})
+                    avatar: interaction.user.displayAvatarURL({extension: "png"})
                 })
                     .then(webhook => webhook.send({content: content, allowedMentions: {repliedUser: false}}))
                     .catch(console.error);

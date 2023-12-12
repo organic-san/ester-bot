@@ -1,18 +1,18 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const { chooseFormat } = require('ytdl-core');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('guess-number')
         .setDescription('來猜個數字吧! 我會想一個四位數字，你要想辦法在回合結束前猜到!')
         .addNumberOption(opt => 
             opt.setName('range')
             .setDescription('選擇要猜測的值的範圍')
-            .addChoice('4個數字之內', 4)
-            .addChoice('6個數字之內', 6)
-            .addChoice('8個數字之內', 8)
-            .addChoice('10個數字之內', 10)
+            .addChoices(
+                {name: "4個", value: 4},
+                {name: "6個", value: 6},
+                {name: "8個", value: 8},
+                {name: "10個", value: 10}
+            )
             .setRequired(true)
         ).addBooleanOption(opt => 
             opt.setName('is-recurring')
@@ -152,233 +152,83 @@ module.exports = {
  * 回傳按鈕
  * @param {number} range
  * @param {boolean} recurring
- * @param {Array<number} choose
+ * @param {Array<number>} choose
  * @returns 
  */
 async function rowCreate(range, recurring, choose) {
-    if(range === 4) {
-        return [
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('1')
-                        .setCustomId('1')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(1)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('2')
-                        .setCustomId('2')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(2)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('3')
-                        .setCustomId('3')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(3)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('4')
-                        .setCustomId('4')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(4)) || choose.length > 3 ? true : false),
-                ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel(choose.length >= 1 ? '取消一格' : '放棄遊戲')
-                        .setCustomId(choose.length >= 1 ? 'delete' : 'cancel')
-                        .setStyle(choose.length >= 1 ? 'PRIMARY' : 'DANGER'),
-                        new Discord.MessageButton()
-                        .setLabel('決定')
-                        .setCustomId('complete')
-                        .setStyle('SUCCESS')
-                        .setDisabled(choose.length > 3 ? false : true),
+    const createButton = (label, customId, style, disabled) => {
+        return new Discord.ButtonBuilder()
+            .setLabel(label)
+            .setCustomId(customId)
+            .setStyle(style)
+            .setDisabled(disabled);
+    };
+
+    const createButtons = (start, end) => {
+        const buttons = [];
+        for (let i = start; i <= end; i++) {
+            buttons.push(createButton(`${i}`, `${i}`, Discord.ButtonStyle.Secondary, (!recurring && choose.includes(i)) || choose.length > 3));
+        }
+        return buttons;
+    };
+
+    const createActionRow = (buttonArray) => {
+        return new Discord.ActionRowBuilder().addComponents(buttonArray);
+    };
+
+    const createActionButton = (label, customId, style, disabled) => {
+        return createButton(label, customId, style, disabled);
+    };
+
+    const actionRows = [];
+    const cancelButtonLabel = range === 10 ? (choose.length >= 1 ? '刪除' : '取消') : choose.length >= 1 ? '取消一格' : '放棄遊戲';
+    const cancelButtonCustomId = choose.length >= 1 ? 'delete' : 'cancel';
+    const cancelButtonStyle = choose.length >= 1 ? Discord.ButtonStyle.Primary : Discord.ButtonStyle.Danger;
+
+    switch(range) {
+        case 4:
+            actionRows.push(
+                createActionRow(createButtons(1, 4)),
+                createActionRow([
+                    createActionButton(cancelButtonLabel, cancelButtonCustomId, cancelButtonStyle, false),
+                    createActionButton('決定', 'complete', Discord.ButtonStyle.Success, choose.length > 3 ? false : true)
                 ])
-        ];
-    }else if(range === 6) {
-        return [
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('1')
-                        .setCustomId('1')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(1)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('2')
-                        .setCustomId('2')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(2)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('3')
-                        .setCustomId('3')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(3)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('4')
-                        .setCustomId('4')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(4)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('5')
-                        .setCustomId('5')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(5)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('6')
-                        .setCustomId('6')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(6)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel(choose.length >= 1 ? '取消一格' : '放棄遊戲')
-                        .setCustomId(choose.length >= 1 ? 'delete' : 'cancel')
-                        .setStyle(choose.length >= 1 ? 'PRIMARY' : 'DANGER'),
-                    new Discord.MessageButton()
-                        .setLabel('決定')
-                        .setCustomId('complete')
-                        .setStyle('SUCCESS')
-                        .setDisabled(choose.length > 3 ? false : true),
+            );
+            break;
+        case 6:
+            actionRows.push(
+                createActionRow(createButtons(1, 3)),
+                createActionRow(createButtons(4, 6)),
+                createActionRow([
+                    createActionButton(cancelButtonLabel, cancelButtonCustomId, cancelButtonStyle, false),
+                    createActionButton('決定', 'complete', Discord.ButtonStyle.Success, choose.length > 3 ? false : true)
                 ])
-        ];
-    }else if(range === 8) {
-        return [
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('1')
-                        .setCustomId('1')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(1)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('2')
-                        .setCustomId('2')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(2)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('3')
-                        .setCustomId('3')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(3)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('4')
-                        .setCustomId('4')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(4)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('5')
-                        .setCustomId('5')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(5)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('6')
-                        .setCustomId('6')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(6)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('7')
-                        .setCustomId('7')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(7)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('8')
-                        .setCustomId('8')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(8)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel(choose.length >= 1 ? '取消一格' : '放棄遊戲')
-                        .setCustomId(choose.length >= 1 ? 'delete' : 'cancel')
-                        .setStyle(choose.length >= 1 ? 'PRIMARY' : 'DANGER'),
-                    new Discord.MessageButton()
-                        .setLabel('決定')
-                        .setCustomId('complete')
-                        .setStyle('SUCCESS')
-                        .setDisabled(choose.length > 3 ? false : true),
+            );
+            break;
+        case 8:
+            actionRows.push(
+                createActionRow(createButtons(1, 4)),
+                createActionRow(createButtons(5, 8)),
+                createActionRow([
+                    createActionButton(cancelButtonLabel, cancelButtonCustomId, cancelButtonStyle, false),
+                    createActionButton('決定', 'complete', Discord.ButtonStyle.Success, choose.length > 3 ? false : true)
                 ])
-        ];
-    }else if(range === 10) {
-        return [
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('1')
-                        .setCustomId('1')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(1)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('2')
-                        .setCustomId('2')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(2)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('3')
-                        .setCustomId('3')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(3)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('4')
-                        .setCustomId('4')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(4)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('5')
-                        .setCustomId('5')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(5)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('6')
-                        .setCustomId('6')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(6)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel('7')
-                        .setCustomId('7')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(7)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('8')
-                        .setCustomId('8')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(8)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('9')
-                        .setCustomId('9')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(9)) || choose.length > 3 ? true : false),
-            ]), 
-            new Discord.MessageActionRow()
-                .addComponents([
-                    new Discord.MessageButton()
-                        .setLabel(choose.length >= 1 ? '退回' : '放棄')
-                        .setCustomId(choose.length >= 1 ? 'delete' : 'cancel')
-                        .setStyle(choose.length >= 1 ? 'PRIMARY' : 'DANGER'),
-                    new Discord.MessageButton()
-                        .setLabel('0')
-                        .setCustomId('0')
-                        .setStyle('SECONDARY')
-                        .setDisabled((!recurring && choose.includes(0)) || choose.length > 3 ? true : false),
-                    new Discord.MessageButton()
-                        .setLabel('決定')
-                        .setCustomId('complete')
-                        .setStyle('SUCCESS')
-                        .setDisabled(choose.length > 3 ? false : true),
+            );
+            break;
+        case 10:
+            actionRows.push(
+                createActionRow(createButtons(1, 3)),
+                createActionRow(createButtons(4, 6)),
+                createActionRow(createButtons(7, 9)),
+                
+                createActionRow([
+                    createActionButton(cancelButtonLabel, cancelButtonCustomId, cancelButtonStyle, false),
+                    createButton('0', '0', Discord.ButtonStyle.Secondary, (!recurring && choose.includes(0)) || choose.length > 3),
+                    createActionButton('決定', 'complete', Discord.ButtonStyle.Success, choose.length > 3 ? false : true)
                 ])
-        ];
+            );
+            break;
     }
+
+    return actionRows;
 }

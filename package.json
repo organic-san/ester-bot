@@ -4,20 +4,21 @@
   "description": "ester",
   "main": "ester.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "main": "node ester.js",
+    "init": "node datainit.js",
+    "s": "node ester-slash.js",
+    "sg": "node ester-slash-global.js"
   },
   "author": "organic_san",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/builders": "^0.6.0",
-    "@discordjs/opus": "^0.5.3",
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "@discordjs/voice": "^0.6.0",
-    "discord-api-types": "^0.23.1",
-    "discord.js": "^13.6.0",
+    "better-sqlite3": "^9.1.1",
+    "discord.js": "^14.14.1",
     "dotenv": "^10.0.0",
     "ffmpeg-static": "^4.4.0",
     "latest": "^0.2.0",
+    "node-fetch": "^2.7.0",
     "opusscript": "^0.0.8",
     "tweetnacl": "^1.0.3",
     "youtube-search": "^1.1.6",

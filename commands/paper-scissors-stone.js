@@ -1,17 +1,18 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('paper-scissors-stone')
 		.setDescription('和機器人猜個拳')
         .addStringOption(opt => 
             opt.setName('gesture')
             .setDescription('要出拳的種類')
             .setRequired(true)
-            .addChoice("布", "paper")
-            .addChoice("剪刀", "scissors")
-            .addChoice("石頭", "stone")
+            .addChoices(
+                {name: "剪刀", value: "scissors"},
+                {name: "石頭", value: "stone"},
+                {name: "布", value: "paper"}
+            )
         ),
 	tag: "interaction",
     /**

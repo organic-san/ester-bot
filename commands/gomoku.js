@@ -1,9 +1,8 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
 const koma = ['⚪', '🟠', '🟫'];
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('gomoku')
         .setDescription('進行一場五子棋遊戲')
         .addUserOption(opt => 
@@ -13,9 +12,11 @@ module.exports = {
         ).addNumberOption(opt => 
             opt.setName('offensive')
                 .setDescription('選擇要先手的玩家。')
-                .addChoice('發起遊戲的玩家', 1)
-                .addChoice('收到邀請的玩家', 2)
-                .addChoice('隨機決定', 3)
+                .addChoices(
+                    {name: "隨機", value: 0},
+                    {name: "先手", value: 1},
+                    {name: "後手", value: 2}
+                )
                 .setRequired(true)
         //).addBooleanOption(opt => 
         //    opt.setName('kinjite')
@@ -42,11 +43,11 @@ module.exports = {
             (offensive === 1 ? `${user[0]} (${user[0].tag}) 為先手。` : 
                 (offensive === 2 ? `${user[1]} (${user[1].tag}) 為先手。` : "先後手將隨機決定。"));
             
-        const OKbutton = new Discord.MessageActionRow().addComponents([
-            new Discord.MessageButton()
+        const OKbutton = new Discord.ActionRowBuilder().addComponents([
+            new Discord.ButtonBuilder()
                 .setLabel("開始遊戲")
                 .setCustomId('OK')
-                .setStyle('PRIMARY')
+                .setStyle(Discord.ButtonStyle.Primary)
             ]);
         /**
          * @type {Discord.Message<boolean>}
@@ -76,7 +77,7 @@ module.exports = {
             await i.deferUpdate();
             return i.customId === 'OK'
         };
-        let p1btn = await message[0].awaitMessageComponent({ filter: msgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 })
+        let p1btn = await message[0].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
             .catch(() => {});
         if (!p1btn) {
             return mainMsg.edit({content: "由於太久沒有收到反映，因此取消向對方傳送邀請。", components: []}).catch(() => {});
@@ -98,7 +99,7 @@ module.exports = {
             return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給" + user[1] + " (" + user[1].tag + ")" + "。").catch(() => {});
         }
 
-        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: 'BUTTON', time: 5 * 60 * 1000 });
+        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 });
         if (!p2btn) {
             mainMsg.edit("對方並未對邀請做出回覆，因此取消開始遊戲。");
             message[0].edit("對方並未對邀請做出回覆，因此取消開始遊玩五子棋。");
@@ -108,7 +109,7 @@ module.exports = {
         await mainMsg.edit("對方同意遊玩邀請了! 即將開始遊戲...").catch(() => {});
         //await p2btn.update({content: "即將開始遊戲...", components: []})
 
-        let player = offensive <= 2 ? offensive : Math.floor(Math.random() * 2) + 1;
+        let player = offensive > 0 ? offensive : Math.floor(Math.random() * 2) + 1;
         const kuro = player;
         let step = 0;
         let board = new Gomoku();

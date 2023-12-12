@@ -29,12 +29,12 @@ module.exports = {
                 if(message.author.bot) return interaction.reply({content: "噢，無法記錄機器人的訊息:(", ephemeral: true});
 
                 const fileimage = message.attachments.first();
-                const embeed = new Discord.MessageEmbed()
+                const embeed = new Discord.EmbedBuilder()
                     .setColor(process.env.EMBEDCOLOR)
                     .setTimestamp()
                     .setDescription(message.content)
-                    .setFooter({text: `${interaction.client.user.tag} 記其志於此`, iconURL: interaction.client.user.displayAvatarURL({dynamic: true})})
-                    .addField(`原文`, `[點一下這裡](${message.url})`)
+                    .setFooter({text: `${interaction.client.user.tag} 記其志於此`, iconURL: interaction.client.user.displayAvatarURL({extension: "png"})})
+                    .addFields({name: `原文`, value: `[點一下這裡](${message.url})`})
                 if (fileimage){
                     if (fileimage.height || fileimage.width)
                     { embeed.setImage(fileimage.url); }
@@ -42,11 +42,11 @@ module.exports = {
                 if(channel.type !== 'PartialDMChannel'){
                     embeed.setAuthor({
                         name: `${message.author.tag} 曾經在 #${channel.name} 這麼說過：`, 
-                        iconURL: message.author.displayAvatarURL({dynamic: true})
+                        iconURL: message.author.displayAvatarURL({extension: "png"})
                     })
                 }else{
                     embeed.setAuthor({name: `${message.author.tag} 曾經這麼說過：`, 
-                    iconURL: message.author.displayAvatarURL({dynamic: true})})
+                    iconURL: message.author.displayAvatarURL({extension: "png"})})
                 }
                 interaction.reply({embeds: [embeed]});
             }

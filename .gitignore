@@ -5,5 +5,8 @@ node_modules/
 /data/record.json
 /commands/test.js
 /commands/music
-/error
+*/error
 .vscode/
+*.db
+*test.js
+*/backup

@@ -1,10 +1,9 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
 const Discord = require('discord.js');
-const guild = require('../class/guildInformation');
 const textCommand = require('../class/textModule');
+const GuildDataMap = require('../class/guildDataMap');
 
 module.exports = {
-	data: new SlashCommandBuilder()
+	data: new Discord.SlashCommandBuilder()
 		.setName('levels')
         .setDescription('與等級系統相關的指令')
         .addSubcommand(opt =>
@@ -36,144 +35,150 @@ module.exports = {
             .addStringOption(opt => 
                 opt.setName('mode')
                 .setDescription('升級訊息的回應方式')
-                .addChoice("message-channel(發送訊息的頻道)", "MessageChannel")
-                .addChoice("specify-channel(指定頻道，需同時指定channel變數)", "SpecifyChannel")
-                .addChoice("dm-channel(私訊回應)", "DMChannel")
-                .addChoice("no-react(不做回應)", "NoReact")
+                .addChoices(
+                    {name: "升級當下的頻道", value: "MessageChannel"},
+                    {name: "指定的頻道", value: "SpecifyChannel"},
+                    {name: "私訊用戶告知", value: "DMChannel"},
+                    {name: "不做回應", value: "NoReact"}
+                )
                 .setRequired(true)
-            ).addChannelOption(opt =>
-                opt.setName('channel')
-                .setDescription('選擇升級訊息要回應的頻道(僅需在設定為specify-channel時輸入)')
             )
         ).addSubcommand(opt =>
             opt.setName('show')
             .setDescription('顯示目前的設定檔，僅限具有管理伺服器權限人員操作')
         ),
-    tag: "guildInfo",
+    tag: "interaction",
 
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
-     * @param {guild.GuildInformation} guildInformation 
      */
 	async execute(interaction, guildInformation) {
         if(!(interaction.guild.members.cache.get((interaction.options.getUser('user') ?? interaction.user).id))) 
             return interaction.reply({content: "我沒辦法在這個伺服器中找到他。", ephemeral:true});
+
+        const guild = new GuildDataMap().get(interaction.guild.id);
+
         if (interaction.options.getSubcommand() === 'rank') {
 
+            if(!guild.isLevelsOpen()) return interaction.reply({content: "哎呀！這個伺服器並沒有開啟等級系統！"});
+
             const user = interaction.options.getUser('user') ?? interaction.user;
-            
             if(user.bot) return interaction.reply({content: "哎呀！機器人並不適用等級系統！", ephemeral: true});
-            if(!guildInformation.levels) return interaction.reply({content: "哎呀！這個伺服器並沒有開啟等級系統！"});
 
-            else{
-                var a = 0;
-                let embed = new Discord.MessageEmbed().setColor(process.env.EMBEDCOLOR);
-                let exps = 0;
-                let lvls = 0;
-                let levelsList = [];
-                guildInformation.users.forEach((item) => {
-                    levelsList.push(item.exp);
-                    if(item.id === user.id){
-                        a++;
-                        let nextlevel = Math.ceil((textCommand.levelUpCalc(item.levels)) * textCommand.avgLevelPoint);
-                        let backlevel = Math.min(Math.ceil((textCommand.levelUpCalc(item.levels - 1)) * textCommand.avgLevelPoint), item.exp);
-                        if(item.levels === 0){backlevel = 0};
-                        exps = item.exp;
-                        lvls = item.levels;
+            const userData = await guild.getUser(user.id);
+            if(!userData) return interaction.reply({content: `看來 ${user} 還沒發送在這伺服器的第一則訊息。`, ephemeral: true});
 
-                        let rankBar = "";
-                        let firstMark = "🟨";
-                        const secondMark = "🟪";
-                        const Barlength = 20;
-                        const persent = Math.ceil((exps - backlevel) / (nextlevel - backlevel) * Barlength - 0.5);
-                        for(let i = 0; i < Barlength; i++){
-                            if(i === persent){firstMark = secondMark;}
-                            rankBar += firstMark;
-                        }
-                        embed.addField(`${exps - backlevel} / ${nextlevel - backlevel} exp. to next level`, rankBar, true)
-                            .setFooter({text: `total: ${item.exp} exp. ${item.msgs} message(s). `/*${item.chips} chip(s)*/})
-                            //TODO: 在未來有金錢系統後記得改掉這裡的顯示，讓chips顯示
-                    }
+            const level = userData.getLevel();
+            const exp = userData.getExp();
+            const ranking = userData.getRanking();
+            const msgs = userData.getMsgs();
+            const nextLevel = Math.ceil((textCommand.levelUpCalc(level)) * textCommand.avgLevelPoint);
+            const previousLevel = Math.min(Math.ceil((textCommand.levelUpCalc(level - 1)) * textCommand.avgLevelPoint), exp);
+
+            const Barlength = 20;
+            const percent = Math.ceil((exp - previousLevel) / (nextLevel - previousLevel) * Barlength - 0.5);
+            const rankBar = "🟨".repeat(percent).padEnd(Barlength * 2, "🟪");
+
+            const rankshow = `\n🔹 RANK: #${ranking} 🔹 LEVEL: ${level} 🔹`;
+            const nickname = interaction.guild.members.cache.get(user.id).nickname;
+
+            // TODO: 在未來有金錢系統後記得改掉這裡的顯示，讓chips顯示
+            const embed = new Discord.EmbedBuilder().setColor(process.env.EMBEDCOLOR)
+                .addFields(
+                    { name: `${exp - previousLevel} / ${nextLevel - previousLevel} exp. to next level`, value: rankBar, inline: true },
+                )
+                .setFooter({text: `total: ${exp} exp. ${msgs} message(s). `/*${item.chips} chip(s)*/})
+                .setAuthor({
+                    name: `${nickname ? `${nickname} (${user.tag})` : user.tag} ${rankshow}`,
+                    iconURL: user.displayAvatarURL({ extension: "png" })
                 });
-                if(a === 0){
-                    interaction.reply({content: `看來 ${user} 還沒發送在這伺服器的第一則訊息。`, ephemeral: true});
-                }else{
-                    levelsList.sort(function(a, b) {return b - a;});
-                    let rankshow = `\n🔹 RANK: #${levelsList.indexOf(exps) + 1} 🔹 LEVEL: ${lvls} 🔹`;
-                    if(interaction.guild.members.cache.get(user.id).nickname){
-                        embed.setAuthor({
-                            name: `${interaction.guild.members.cache.get(user.id).nickname} (${user.tag}) ${rankshow}`,
-                            iconURL: user.displayAvatarURL({dynamic: true})
-                        });
-                    }else{
-                        embed.setAuthor({
-                            name: `${user.tag} ${rankshow}`,
-                            iconURL: user.displayAvatarURL({dynamic: true})
-                        });
-                    }
-                    interaction.reply({embeds: [embed]});
-                }
-            }
+
+            interaction.reply({embeds: [embed]});
 
         } else if(interaction.options.getSubcommand() === 'ranking') {
 
-            if(!guildInformation.levels) return interaction.reply({content: "哎呀！這個伺服器並沒有開啟等級系統！"});
-            const pageShowHax = 20;
+            if(!guild.isLevelsOpen()) return interaction.reply({content: "哎呀！這個伺服器並沒有開啟等級系統！"});
+
+            const pageShowHax = 15;
             let page = 0;
-            guildInformation.sortUser();
-            const levels = levelsEmbed(interaction.guild, guildInformation, page, pageShowHax);
-            const row = new Discord.MessageActionRow()
-			.addComponents(
-				[
-                    new Discord.MessageButton()
-                        .setCustomId('上一頁')
-                        .setLabel('上一頁')
-                        .setStyle('PRIMARY'),
-                    new Discord.MessageButton()
-                        .setCustomId('下一頁')
-                        .setLabel('下一頁')
-                        .setStyle('PRIMARY')
-                ]
-			);
+            const userList = guild.getLevelsUserList();
+
+            /**
+             * 顯示整個伺服器的經驗值排名
+             * @param {number} page 頁數
+             * @returns {Discord.Embed} 包含排名的embed資料
+             */
+            function levelsEmbed(page){
+                let levelembed = new Discord.EmbedBuilder()
+                    .setTitle(`${interaction.guild.name} 的等級排行`)
+                    .setColor(process.env.EMBEDCOLOR)                            
+                    .setThumbnail(`https://cdn.discordapp.com/icons/${guild.id}/${interaction.guild.icon}.jpg`);
+
+                const from = page * pageShowHax;
+                const to = Math.min(page * pageShowHax + pageShowHax, userList.length);
+                for(let i = from; i < to; i++){
+                    const rank = userList[i].rank;
+                    const levels = userList[i].levels;
+                    levelembed.addFields({
+                        name: `#${rank} - ${userList[i].exp} exp. (lv.${userList[i].levels})`,
+                        value: `${
+                            rank === 1 ? "🥇" :
+                            rank === 2 ? "🥈" :
+                            rank === 3 ? "🥉" :
+                            levels < 1 ? "🔰" :
+                            rank <= 30 ? "📒" :
+                            rank <= 100 ? "📘" :
+                            rank <= 500 ? "📜" :
+                            "📃"
+                        } <@${userList[i].id}>`
+                    });
+                }
+                levelembed.setDescription(`#${from + 1} ~ #${to} / #${userList.length}`);
+                return levelembed;
+            }
+
+            let levels = levelsEmbed(page);
+            const row = new Discord.ActionRowBuilder()
+                .addComponents([
+                    new Discord.ButtonBuilder().setCustomId('first').setLabel('⏮️ 第一頁').setStyle(Discord.ButtonStyle.Secondary),
+                    new Discord.ButtonBuilder().setCustomId('previous').setLabel('◀️ 上一頁').setStyle(Discord.ButtonStyle.Secondary),
+                    new Discord.ButtonBuilder().setCustomId('next').setLabel('下一頁 ▶️').setStyle(Discord.ButtonStyle.Secondary),
+                    new Discord.ButtonBuilder().setCustomId('last').setLabel('最後一頁 ⏭️').setStyle(Discord.ButtonStyle.Secondary),
+                ]);
             const msg = await interaction.reply({embeds: [levels], components: [row], fetchReply: true});
 
-            const filter = i => ['上一頁', '下一頁'].includes(i.customId) && !i.user.bot;
+            const filter = i => ['first', 'previous', 'next', 'last'].includes(i.customId) && !i.user.bot;
             const collector = msg.createMessageComponentCollector({filter, time: 60 * 1000 });
             
             collector.on('collect', async i => {
-                if (i.customId === '下一頁') 
-                    if(page * pageShowHax + pageShowHax < guildInformation.usersMuch) page++;
-                if(i.customId === '上一頁')
-                    if(page > 0) page--;
-                guildInformation.sortUser();
-                const levels = levelsEmbed(interaction.guild, guildInformation, page, pageShowHax);
+                if(i.customId === 'first') page = 0;
+                if(i.customId === 'last') page = Math.floor(userList.length / pageShowHax);
+                if(i.customId === 'previous') page = Math.max(page - 1, 0);
+                if(i.customId === 'next') page = Math.min(page + 1, Math.floor(userList.length / pageShowHax));
+
+                levels = levelsEmbed(page);
                 i.update({embeds: [levels], components: [row]});
                 collector.resetTimer({ time: 60 * 1000 });
             });
             
             collector.on('end', (c, r) => {
                 if(r !== "messageDelete"){
-                    const levels = levelsEmbed(interaction.guild, guildInformation, page, pageShowHax);
                     interaction.editReply({embeds: [levels], components: []})
                 }
             });
             
         } else if(interaction.options.getSubcommand() === 'no-dm') {
-            
-            const item = guildInformation.getUser(interaction.user.id);
-            if(item.DM !== true){
-                item.DM = true;
-                interaction.reply({content: `已開啟你在 **${interaction.guild.name}** 的私訊升等通知。`, ephemeral: true})
-                    .catch(() => item.DM = false);
-            }else{
-                item.DM = false;
-                interaction.reply({content: `已關閉你在 **${interaction.guild.name}** 的私訊升等通知。`, ephemeral: true})
-                    .catch(() => item.DM = false);
-            }
+
+            const userData = await guild.getUser(user.id);
+            const isDMOpen = userData.getDM();
+            userData.changeDM();
+
+            interaction.reply({content: `已${isDMOpen ? "關閉" : "開啟"}你在 **${interaction.guild.name}** 的私訊升等通知。`, ephemeral: true});
+
         } else { 
             //權限
-            if (!interaction.member.permissions.has(Discord.Permissions.FLAGS.MANAGE_MESSAGES)){ 
+            if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)){ 
                 return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
             }
         }
@@ -181,32 +186,34 @@ module.exports = {
         //以下需要管理權限
 
         //開關
-        if(interaction.options.getSubcommand() === 'open') {
-            guildInformation.levels = true;
-            interaction.reply("已開啟等級系統");
-
-        } else if(interaction.options.getSubcommand() === 'close') {
-            guildInformation.levels = false;
-            interaction.reply("已關閉等級系統");
+        if(interaction.options.getSubcommand() === 'open' || interaction.options.getSubcommand() === 'close') {
+            guild.setLevelsOpen(interaction.options.getSubcommand() === 'open' ? true : false);
+            interaction.reply(`已${interaction.options.getSubcommand() === 'open' ? "開啟" : "關閉"}等級系統。`);
 
         //歸零
         } else if(interaction.options.getSubcommand() === 'reset') {
-            const msg = await interaction.reply({content: "確定要清除所有人的經驗值嗎？此動作無法復原。\n點一下下面的✅以清除所有資料", fetchReply: true});
-            await msg.react('✅');
-            const filter = (reaction, user) => reaction.emoji.name === '✅' && user.id === interaction.user.id;
-            msg.awaitReactions({filter, max: 1, time: 20 * 1000, errors: ['time'] })
-            .then((c) => {
-                if(c.size !== 0){
-                    guildInformation.clearReaction();
-                    interaction.followUp("已歸零所有人的經驗值。").catch((err)=>console.log(err));
-                }else{
-                    interaction.followUp("已取消歸零所有人的經驗值。");
-                }
-            }) 
-            .catch(() => {
-                msg.reactions.cache.get('✅').users.remove().catch((err)=>console.log(err));
-                interaction.followUp("已取消歸零所有人的經驗值。");
-            })
+            const row = new Discord.ActionRowBuilder()
+            .addComponents([
+                new Discord.ButtonBuilder().setCustomId('c').setLabel('確定').setStyle(Discord.ButtonStyle.Danger),
+            ]);
+            const msg = await interaction.reply({
+                content: "確定要清除所有人的經驗值嗎？此動作無法復原。\n點擊下方按鈕以清除所有資料。", 
+                fetchReply: true, 
+                components: [row]
+            });
+
+            const filter = (i) => i.user.id === interaction.user.id;
+            const reaction = await msg.awaitMessageComponent({ filter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
+                .catch(() => {});
+            if (!reaction) {
+                return msg.edit({content: "由於逾時而取消設定。", components: []}).catch(() => {});
+            } else {
+                guild.resetLevels();
+                msg.edit({
+                    content: "已重置所有人的經驗值。", 
+                    components: []
+                }).catch(() => {});
+            }
 
         //更改模式
         } else if(interaction.options.getSubcommand() === 'level-up-react') {
@@ -214,83 +221,75 @@ module.exports = {
             const mode = interaction.options.getString('mode');
 
             if(['MessageChannel', 'DMChannel', 'NoReact'].includes(mode)){
-                guildInformation.levelsReact = mode;
-                return interaction.reply(`設定完成！已將升等訊息發送模式改為 ${guildInformation.levelsReact}。`);
+                guild.setLevelsMode(mode);
+                return interaction.reply(`設定完成！已將升等訊息發送模式改為 ${
+                    mode === 'MessageChannel' ? "升級當下的頻道" :
+                    mode === 'DMChannel' ? "私訊用戶告知" :
+                    "不做回應"
+                }。`);
 
             }else{
-                const channel = interaction.options.getChannel('channel');
+                const row = new Discord.ActionRowBuilder().addComponents(
+                    new Discord.TextInputBuilder()
+                        .setCustomId('chidInput')
+                        .setLabel('頻道ID')
+                        .setStyle(Discord.TextInputStyle.Short)
+                )
 
-                if(!channel) return interaction.reply({content: `設定模式為SpecifyChannel時請設定頻道!`, ephemeral: true})
-                if(!channel.isText()) return interaction.reply({content: '⚠️所選擇頻道似乎不是文字頻道。', ephemeral: true});
-                if(channel.isThread()) return interaction.reply({content: '⚠️請不要將頻道設立在討論串。', ephemeral: true});
-                guildInformation.levelsReactChannel = channel.id;
-                guildInformation.levelsReact = mode;
-                interaction.reply(`設定完成！\n已將升等訊息發送模式改為 ${guildInformation.levelsReact}\n` +
-                ` 頻道指定為 ${channel} (ID: ${channel.id})`);
+                const modal = new Discord.ModalBuilder()
+                    .setCustomId('chid')
+                    .setTitle('請輸入要發送升等訊息的頻道。')
+                    .addComponents(row)
+                
+                await interaction.showModal(modal);
+                
+                const filter = (i) => i.customId === 'chid' && i.user.id === interaction.user.id;
+                interaction.awaitModalSubmit({filter, time: 100 * 1000}).then(async (modalInteraction) => {
+
+                    const chid = modalInteraction.fields.getTextInputValue('chidInput');
+                    const channel = interaction.guild.channels.cache.get(chid);
+                    if(!channel) return modalInteraction.reply({content: `⚠️找不到這個頻道。`, ephemeral: true})
+                    if(channel.type !== Discord.ChannelType.GuildText) return modalInteraction.reply({content: '⚠️所選擇頻道似乎不是文字頻道。', ephemeral: true});
+                    if(channel.isThread()) return modalInteraction.reply({content: '⚠️請不要將頻道設立在討論串。', ephemeral: true});
+                    guild.setLevelsMode(mode);
+                    guild.setLevelsChannel(channel.id);
+                    modalInteraction.reply(`設定完成！已將升等訊息發送模式改為 ${channel}。`);
+
+                }).catch(() => {});
             }
 
         //顯示設定
         } else if(interaction.options.getSubcommand() === 'show') {
-            let levelsisworking = guildInformation.levels ? "啟用" : "停用";
+            const levelsisworking = guild.isLevelsOpen() ? "\`🟢開啟\`" : "\`🔴關閉\`";
+            const levelsReact = guild.getLevelsMode();
+            const levelsReactType = levelsReact === "MessageChannel" ? "升級當下的頻道" :
+                levelsReact === "SpecifyChannel" ? "指定的頻道" :
+                levelsReact === "DMChannel" ? "私訊用戶告知" :
+                "不做回應";
 
-            let embed = new Discord.MessageEmbed()
+
+            const embed = new Discord.EmbedBuilder()
                 .setTitle(`${interaction.guild.name} 的等級排行設定`)
                 .setColor(process.env.EMBEDCOLOR)                            
                 .setThumbnail(`https://cdn.discordapp.com/icons/${interaction.guild.id}/${interaction.guild.icon}.jpg`)
-                .addField("等級排行系統", levelsisworking, true)
-                .addField("升級訊息發送模式", guildInformation.levelsReact, true)
+                .addFields(
+                    {name: "等級排行系統", value: levelsisworking, inline: true },
+                    {name: "升級訊息發送模式", value: levelsReactType, inline: true },
+
+                )
                 .setFooter({
                     text: `${interaction.client.user.tag} • 相關說明請查看/help`,
                     iconURL: `${interaction.client.user.displayAvatarURL({dynamic: true})}`
                 })
                 .setTimestamp();
             
-            if(guildInformation.levelsReact === "SpecifyChannel") {
-                const channel = interaction.client.channels.cache.get(guildInformation.levelsReactChannel);
+            if(levelsReact === "SpecifyChannel") {
+                const channel = interaction.client.channels.cache.get(guild.getLevelsChannel());
                 let lcm = `${channel ?? "undefined"}`;
-                embed.addField("升級訊息發送頻道", lcm, true);
+                embed.addFields({name: "升級訊息發送頻道", value: lcm, inline: true });
             }
             interaction.reply({embeds: [embed]});
-        }
+        } 
 	},
 };
 
-/**
- * 顯示整個伺服器的經驗值排名
- * @param {Discord.Guild} guild 該伺服器的Discord資料
- * @param {guild.GuildInformation} element 該伺服器的資訊
- * @param {number} page 頁數
- * @param {number} pageShowHax 單頁上限 
- * @returns 包含排名的Discord.MessageEmbed
- */
-function levelsEmbed(guild, element, page, pageShowHax){
-    //#region 等級排行顯示清單
-    let levelembed = new Discord.MessageEmbed()
-        .setTitle(`${guild.name} 的等級排行`)
-        .setColor(process.env.EMBEDCOLOR)                            
-        .setThumbnail(`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.jpg`);
-
-    //let ebmsgrk = "";
-    //let ebmsgname = "";
-    //let ebmsgexp = "";
-
-    let embedMessage = "";
-    for(let i = page * pageShowHax; i < Math.min(page * pageShowHax + pageShowHax, element.users.length); i++){
-        //let nametag = new String(element.users[i].tag);
-        //if(nametag.length > 20){nametag = nametag.substring(0,20) + `...`;}
-        //ebmsgrk += `#${i + 1} \n`;
-        //ebmsgname += `${nametag}\n`
-        //ebmsgexp += `${element.users[i].exp} exp. (lv.${element.users[i].levels})\n`;
-
-        embedMessage += `#${i + 1}: <@${element.users[i].id}> with ${element.users[i].exp} exp. (lv.${element.users[i].levels})\n`;
-    }
-    levelembed.setDescription(`#${page * pageShowHax + 1} ~ #${Math.min(page * pageShowHax + pageShowHax, element.users.length)}` + 
-        ` / #${element.users.length}`);
-    //levelembed.addField("rank", ebmsgrk, true);
-    //levelembed.addField("name", ebmsgname, true);
-    //levelembed.addField("exp.", ebmsgexp, true);
-
-    levelembed.addField("rank / user name / exp.", embedMessage, true);
-
-    return levelembed;
-}

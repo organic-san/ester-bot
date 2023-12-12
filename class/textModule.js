@@ -1,4 +1,5 @@
 const Discord = require('discord.js');
+const fs = require('fs');
 require('dotenv').config();
 
 module.exports = {
@@ -11,6 +12,12 @@ module.exports = {
     levelUpCalc: (level) => (2 * level * level + 13 * level + 12),
     avgLevelPoint: 12.5, //s
     messageCooldown: 45, //s
+
+    /**
+     * 經驗值獲得公式
+     * @returns 回傳獲得的經驗值量 
+     */
+    expAddFormula: () => (Math.floor(Math.random() * 6) + 10),
 
     /**
      * 隨機排序陣列
@@ -125,6 +132,33 @@ module.exports = {
             }
         }
         return false;
+    },
+
+    localISOTimeNow: () => {
+        let tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 19);
+    },
+
+    localISOTime: (t) => {
+        let tzoffset = (new Date()).getTimezoneOffset() * 60000;
+        return (new Date(t - tzoffset)).toISOString().slice(0, 19);
+    },
+
+    wait(ms) {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve();
+            }, ms);
+        })
+    },
+
+    createErrorLog(err) {
+        const errorLog = `${err}\n\nError Info: ${JSON.stringify(err, null, '\t')}\n\nError Route: ${err.stack}`;
+        let filename = __dirname + `/../data/error/${this.localISOTimeNow()}.txt`.split(":").join("-");
+        fs.writeFile(filename, errorLog, function (err){
+            if (err)
+                console.log(err);
+        });
     },
     //#endregion
 
