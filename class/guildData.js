@@ -45,7 +45,6 @@ module.exports = class GuildData {
                 @levelsReact, 
                 @levelsReactCh, 
                 @emojiTrans, 
-                @reactionCount, 
                 @eqCh, 
                 @eqAnnsLv
             )
@@ -64,7 +63,6 @@ module.exports = class GuildData {
             levelsReact: "MessageChannel",
             levelsReactCh: "",
             emojiTrans: 1,
-            reactionCount: 0,
             eqCh: "",
             eqAnnsLv: 0
         });
