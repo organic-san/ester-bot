@@ -1,6 +1,6 @@
 {
   "cmake.configureOnOpen": true,
-  "workbench.colorTheme": "Tomorrow Night",
+  "workbench.colorTheme": "Base16 Tomorrow Dark",
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
   "C_Cpp_Runner.debuggerPath": "gdb",

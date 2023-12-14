@@ -53,7 +53,7 @@ module.exports = {
      * 
      * @param {Discord.CommandInteraction} interaction 
      */
-	async execute(interaction, guildInformation) {
+	async execute(interaction) {
         if(!(interaction.guild.members.cache.get((interaction.options.getUser('user') ?? interaction.user).id))) 
             return interaction.reply({content: "我沒辦法在這個伺服器中找到他。", ephemeral:true});
 
@@ -170,7 +170,7 @@ module.exports = {
             
         } else if(interaction.options.getSubcommand() === 'no-dm') {
 
-            const userData = await guild.getUser(user.id);
+            const userData = await guild.getUser(interaction.user.id);
             const isDMOpen = userData.getDM();
             userData.changeDM();
 
