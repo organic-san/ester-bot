@@ -38,6 +38,10 @@ client.once(Discord.Events.ClientReady, async () => {
 
         console.log(`設定成功: ${new Date()}`);
         DCAccess.log(`登入成功: ${Discord.time(new Date())}`);
+        if(client.user.id !== process.env.BOT_ID_ACIDTEST)
+            client.channels.fetch(process.env.CHECK_CH_ID2).then(channel => 
+                channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`)
+            );
         isready = true;
     }, parseInt(process.env.LOADTIME) * 1000);
 
@@ -71,6 +75,7 @@ client.once(Discord.Events.ClientReady, async () => {
         }, 24 * 60 * 60 * 1000);
     }
 
+    client.channels.cache.get(process.env.LIFETIME_CH_ID).send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
     setInterval(() => {
         client.channels.cache.get(process.env.LIFETIME_CH_ID).send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
     }, 5 * 60 * 1000);
