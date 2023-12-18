@@ -44,7 +44,10 @@ module.exports = class GuildDataMap {
             WHERE earthquakeAnnounceLevel <> 0
         `).all().forEach(data => {
             if(level >= data.earthquakeAnnounceLevel) {
-                DCAccess.getChannel(data.earthquakeAnnounceChannel)?.send({ embeds: [infoEmbed] });
+                const channel = DCAccess.getChannel(data.earthquakeAnnounceChannel);
+                if(!channel) return;
+                if(DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages)) return;
+                channel.send({ embeds: [infoEmbed] });
             }
         });
     }

@@ -13,6 +13,7 @@ module.exports = class User {
      */
     #guildId;
     #userId;
+    #userTag;
     #lastMessageTime = 0;
     #lastTagChangeTime = 0;
 
@@ -65,6 +66,10 @@ module.exports = class User {
         return this.#userId;
     }
 
+    get tag() {
+        return this.#userTag ? this.#userTag : db.prepare(`SELECT tag FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId).tag;
+    }
+
     get #databaseId() {
         return `${this.#guildId}_${this.#userId}`;
     }
@@ -77,6 +82,7 @@ module.exports = class User {
         if(Date.now() - this.#lastTagChangeTime < 24 * 60 * 60 * 1000) return;
         const user = await DCAccess.getUser(this.#userId);
         db.prepare(`UPDATE ${this.#DBName} SET tag = ? WHERE userId = ?`).run(user.tag, this.#userId);
+        this.#userTag = user.tag;
         this.#lastTagChangeTime = Date.now();
     }
 

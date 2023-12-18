@@ -225,6 +225,10 @@ module.exports = class GuildData {
         DCAccess.log(`歡迎訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
 
+    /**
+     * 
+     * @param {User} user
+     */
     sendLeaveMessage(user) {
         const { leaveMessage, leaveMessageContent, leaveChannel } = db.prepare(`
             SELECT leaveMessage, leaveMessageContent, leaveChannel 
@@ -242,8 +246,8 @@ module.exports = class GuildData {
             !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
-        if(!leaveMessageContent) return channel.send(`<@${user.id}> 已遠離我們而去。`);
-        const msg = leaveMessageContent.replace(/<user>/g, `<@${user.id}>`).replace(/<server>/g, `**${guild.name}**`);
+        if(!leaveMessageContent) return channel.send(`**${user.tag}** 已遠離我們而去。`);
+        const msg = leaveMessageContent.replace(/<user>/g, `**${user.tag}**`).replace(/<server>/g, `**${guild.name}**`);
         channel.send(msg);
 
         DCAccess.log(`送別訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);

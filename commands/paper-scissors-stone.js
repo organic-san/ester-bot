@@ -21,14 +21,15 @@ module.exports = {
      */
 	async execute(interaction) {
 
+        interaction.deferReply();
+
         const gesture = interaction.options.getString('gesture');
 
         let mode = -1;
         if(gesture === 'scissors'){mode = 0;}
         if(gesture === 'stone'){mode = 1;}
         if(gesture === 'paper'){mode = 2;}
-        let pss = ['剪刀', '石頭', '布'];
-        let psse = ['✌', '✊', '🖐️'];
+        let pss = ['剪刀✌', '石頭✊', '布🖐️'];
         var finger = Math.floor(Math.random()*3);
         let message = `你 猜出了 ${pss[mode]}\n我 猜出了 ${pss[finger]}\n`;
         if(mode === finger){
