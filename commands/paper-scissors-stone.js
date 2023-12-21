@@ -21,7 +21,7 @@ module.exports = {
      */
 	async execute(interaction) {
 
-        interaction.deferReply();
+        await interaction.deferReply();
 
         const gesture = interaction.options.getString('gesture');
 
@@ -54,6 +54,6 @@ module.exports = {
                 case 2: message = message + `哈哈！你是敵不過我「猜拳小子」的！`; break;
             }
         }
-        interaction.reply(message);
+        interaction.editReply(message);
     }
 };
