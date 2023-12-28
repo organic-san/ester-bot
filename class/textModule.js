@@ -152,8 +152,12 @@ module.exports = {
         })
     },
 
-    createErrorLog(err) {
-        const errorLog = `${err}\n\nError Info: ${JSON.stringify(err, null, '\t')}\n\nError Route: ${err.stack}`;
+    createErrorLog(err, command) {
+        const errorLog = 
+            `${err}\n\n` + 
+            (command ? "Error Command: " + command + "\n\n" : "") + 
+            `Error Info: ${JSON.stringify(err, null, '\t')}\n\n` +
+            `Error Route: ${err.stack}`;
         let filename = __dirname + `/../data/error/${this.localISOTimeNow()}.txt`.split(":").join("-");
         fs.writeFile(filename, errorLog, function (err){
             if (err)

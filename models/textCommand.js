@@ -94,7 +94,6 @@ DCAccess.on(Discord.Events.MessageCreate,
                         if(!word[1]) return;
                         if(!Number.isNaN(parseInt(word[1]))){
                             if(!word[2]) return;
-                            console.log('a');
                             const channelt = DCAccess.getChannel(word[1]);
                             channelt.send(
                                 msg.content.substring(prefix[6].Value.length + word[0].length + word[1].length + 2)
