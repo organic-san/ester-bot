@@ -44,9 +44,9 @@ module.exports = {
             `將在 <t:${Math.floor(interaction.createdTimestamp / 1000) + setTime}:T> 時通知`);
         setTimeout(() => {
             if(!message){
-                interaction.channel.send(`叮叮叮！${interaction.user}，倒數 ${hours}:${mins}:${secs} 結束！`);
+                interaction.channel?.send(`叮叮叮！${interaction.user}，倒數 ${hours}:${mins}:${secs} 結束！`);
             }else{
-                interaction.channel.send(`叮叮叮！${interaction.user}，${message}`);
+                interaction.channel?.send(`叮叮叮！${interaction.user}，${message}`);
             }
         }, (setTime) * 1000) 
 	},

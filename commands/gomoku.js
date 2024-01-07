@@ -99,7 +99,8 @@ module.exports = {
             return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給" + user[1] + " (" + user[1].tag + ")" + "。").catch(() => {});
         }
 
-        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 });
+        let p2btn = await message[1].awaitMessageComponent({ filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 })
+            .catch(() => {});
         if (!p2btn) {
             mainMsg.edit("對方並未對邀請做出回覆，因此取消開始遊戲。");
             message[0].edit("對方並未對邀請做出回覆，因此取消開始遊玩五子棋。");

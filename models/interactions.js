@@ -1,11 +1,8 @@
 const Discord = require('discord.js');
 
 const DCAccess = require('../class/discordAccess');
-const GuildDataMap = require('../class/guildDataMap');
 const Record = require('../class/record');
 const textModule = require('../class/textModule');
-
-const guildDataMap = new GuildDataMap();
 
 DCAccess.on(Discord.Events.InteractionCreate, 
     /**
@@ -15,7 +12,10 @@ DCAccess.on(Discord.Events.InteractionCreate,
      */
     async interaction => {
 
-    if(!interaction.guild && interaction.isChatInputCommand()) return interaction.reply("無法在私訊中使用斜線指令!");
+    if(!interaction.guild && interaction.isChatInputCommand()) return interaction.reply("無法在私訊中使用斜線指令!").catch(async (err) => {
+        DCAccess.log(`<@${process.env.OWNER1ID}>，無法在私訊中使用斜線指令錯誤: ` + err);
+        textModule.createErrorLog(err);
+    });
     if(!interaction.guild) return;
     if(!interaction.isChatInputCommand()) return;
 
