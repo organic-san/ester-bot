@@ -44,8 +44,11 @@ module.exports = {
 
         if (interaction.options.getSubcommand() === 'show') {
             const reactionList = guild.getReactionData();
+            await interaction.deferReply();
 
-            if(reactionList.length === 0) return interaction.reply('這個伺服器並沒有設定專屬反應，不如透過 \`/auto-reply add\` 新增看看？');
+            if(reactionList.length === 0) return interaction.editReply({
+                content: '這個伺服器並沒有設定專屬反應，不如透過 \`/auto-reply add\` 新增看看？'
+            });
 
             const pageShowHax = 12;
             let page = 0;
@@ -77,7 +80,7 @@ module.exports = {
                     new Discord.ButtonBuilder().setCustomId('next').setLabel('下一頁 ▶️').setStyle(Discord.ButtonStyle.Secondary),
                     new Discord.ButtonBuilder().setCustomId('last').setLabel('最後一頁 ⏭️').setStyle(Discord.ButtonStyle.Secondary),
                 ]);
-            const msg = await interaction.reply({embeds: [reactions], components: [row], fetchReply: true});
+            const msg = await interaction.editReply({embeds: [reactions], components: [row], fetchReply: true});
 
             const filter = i => ['first', 'previous', 'next', 'last'].includes(i.customId) && !i.user.bot;
             const collector = msg.createMessageComponentCollector({filter, time: 60 * 1000 });
@@ -102,58 +105,59 @@ module.exports = {
         } else {
             //權限
             if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)){ 
-                return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true});
+                return interaction.reply({content: "僅限管理員使用本指令。", ephemeral: true}).catch(() => {});
             }
         }
         //以下指令需要權限
 
         //新增
         if (interaction.options.getSubcommand() === 'add') {
-
+            await interaction.deferReply();
             const triggerMessage = interaction.options.getString('trigger-message');
             const replyMessage = interaction.options.getString('reply-message');
             
             if (triggerMessage.length > 50) 
-                return interaction.reply({content: `設定失敗：文字過長，請縮短捕捉文字長度至50字以下。`, ephemeral: true});
+                return interaction.editReply({content: `設定失敗：文字過長，請縮短捕捉文字長度至50字以下。`, ephemeral: true});
             if(guild.isReactionExist(triggerMessage))
-                return interaction.reply({content: `設定失敗：該關鍵字已被使用，請重新設定。`, ephemeral: true});
+                return interaction.editReply({content: `設定失敗：該關鍵字已被使用，請重新設定。`, ephemeral: true});
 
             if (replyMessage.length > 200)
-                return interaction.reply({content: `設定失敗：文字過長，請縮短回覆文字長度至200字以下。`, ephemeral: true});
+                return interaction.editReply({content: `設定失敗：文字過長，請縮短回覆文字長度至200字以下。`, ephemeral: true});
             //是否為指令
             
             const id = guild.addReaction(triggerMessage, replyMessage);
-            interaction.reply(`設定完成，已新增已下反應: \n\nID: ${id}\n訊息: ${triggerMessage}\n回覆: ${replyMessage}`);
+            interaction.editReply(`設定完成，已新增已下反應: \n\nID: ${id}\n訊息: ${triggerMessage}\n回覆: ${replyMessage}`);
 
         //移除
         } else if (interaction.options.getSubcommand() === 'remove') {
-
+            await interaction.deferReply();
             const replyId = interaction.options.getInteger('auto-reply-id');
 
             if(guild.getReactionSize() <= 0){
-                return interaction.reply({content: '這個伺服器還沒有設定專屬自動回應，歡迎使用 \`/auto-reply add\` 新增。', ephemeral: true});
+                return interaction.editReply({content: '這個伺服器還沒有設定專屬自動回應，歡迎使用 \`/auto-reply add\` 新增。', ephemeral: true});
             }
 
             const reaction = guild.getReaction(replyId);
             if(!reaction){
-                return interaction.reply({content: '無法找到該ID的反應。請確認是否為存在的ID。', ephemeral: true});
+                return interaction.editReply({content: '無法找到該ID的反應。請確認是否為存在的ID。', ephemeral: true});
             }
 
             guild.deleteReaction(replyId);
-            interaction.reply(`成功移除反應: \n\n訊息: ${reaction.react}\n回覆: ${reaction.reply}`);
+            interaction.editReply(`成功移除反應: \n\n訊息: ${reaction.react}\n回覆: ${reaction.reply}`);
 
         //重置
         } else if (interaction.options.getSubcommand() === 'reset') {
+            await interaction.deferReply();
 
             if(guild.getReactionSize() <= 0){
-                return interaction.reply({content: '這個伺服器還沒有設定專屬自動回應，歡迎使用 \`/auto-reply add\` 新增。', ephemeral: true});
+                return interaction.editReply({content: '這個伺服器還沒有設定專屬自動回應，歡迎使用 \`/auto-reply add\` 新增。', ephemeral: true});
             }
 
             const row = new Discord.ActionRowBuilder()
             .addComponents([
                 new Discord.ButtonBuilder().setCustomId('c').setLabel('確定').setStyle(Discord.ButtonStyle.Danger),
             ]);
-            const msg = await interaction.reply({
+            const msg = await interaction.editReply({
                 content: "確定要清除所有自動回應嗎？此動作無法復原。\n點擊下方按鈕以清除所有資料。", 
                 fetchReply: true, 
                 components: [row]

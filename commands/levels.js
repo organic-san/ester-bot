@@ -158,7 +158,7 @@ module.exports = {
                 if(i.customId === 'next') page = Math.min(page + 1, Math.floor(userList.length / pageShowHax));
 
                 levels = levelsEmbed(page);
-                i.update({embeds: [levels], components: [row]});
+                i.update({embeds: [levels], components: [row]}).catch(() => {});
                 collector.resetTimer({ time: 60 * 1000 });
             });
             
