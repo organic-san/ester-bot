@@ -11,8 +11,7 @@ module.exports = {
         .addSubcommand(opt =>
             opt.setName('bot')
                 .setDescription('查看機器人的資訊')
-        )
-        .addSubcommand(opt =>
+        ).addSubcommand(opt =>
             opt.setName('guild')
                 .setDescription('查看伺服器的資訊')
         ).addSubcommand(opt =>
