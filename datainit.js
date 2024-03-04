@@ -2,7 +2,7 @@ const fs = require('fs');
 require('dotenv').config();
 const Database = require('better-sqlite3');
 
-if(fs.existsSync(process.env.DATABASE_URL)) {
+if (fs.existsSync(process.env.DATABASE_URL)) {
     fs.unlinkSync(process.env.DATABASE_URL);
 }
 
@@ -72,7 +72,7 @@ db.prepare(`
 const recordInsert = db.prepare(`INSERT INTO ${process.env.RECORDTABLE} (ConfigKey, ConfigValue) VALUES (?, ?)`);
 const dataPath = "./data/record.json";
 
-if(fs.existsSync(dataPath)) {
+if (fs.existsSync(dataPath)) {
     const recordData = fs.readFileSync(dataPath, 'utf8');
     const recordList = JSON.parse(recordData);
 
@@ -107,12 +107,12 @@ if(fs.existsSync(dataPath)) {
     recordInsert.run('autoReplyCount', 0);
 
     const commandFiles = fs.readdirSync('./commands')?.filter(file => file.endsWith('.js'));
-    if(commandFiles) {
+    if (commandFiles) {
         for (const key of commandFiles) {
             recordInsert.run(`interaction_${key}`, 0);
         }
     }
-    
+
 
     recordInsert.run('user_join', 0);
     recordInsert.run('user_leave', 0);
@@ -136,7 +136,7 @@ if(fs.existsSync(dataPath)) {
 // each server data table
 
 const filePath = 'data/guildInfo/guildlist.json';
-if(!fs.existsSync(filePath)) return;
+if (!fs.existsSync(filePath)) return;
 
 const serverDataArray = [];
 const userDataArray = [];
@@ -174,14 +174,14 @@ const insertUserData = db.prepare(`
 const userDataTrans = db.transaction((list) => {
     for (const user of list) {
         insertUserData.run(
-            user.id, 
+            user.id,
             user.userId,
             user.guildId,
-            user.tag, 
-            user.DM, 
-            user.exp, 
-            user.chips, 
-            user.msgs, 
+            user.tag,
+            user.DM,
+            user.exp,
+            user.chips,
+            user.msgs,
             user.levels
         );
     }
@@ -240,7 +240,7 @@ JSON.parse(guildList).forEach(e => {
             levels: user.levels
         });
     }
-    for(const reaction of serverData.reaction) {
+    for (const reaction of serverData.reaction) {
         reactionDataArray.push({
             guildId: serverData.id,
             react: reaction.react,

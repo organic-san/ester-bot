@@ -43,15 +43,15 @@ module.exports = {
      * @returns
      */
     on(event, callback) {
-        if(!client) throw new Error("DiscordAcccess.on Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.on Error: client not set.");
         client.on(event, callback);
     },
 
     setCommand(command) {
-        if(!command) throw new Error("DiscordAcccess.setCommand Error: command must be provided.");
-        if(!command.data) throw new Error("DiscordAcccess.setCommand Error: command.data must be provided.");
-        if(!command.tag) throw new Error("DiscordAcccess.setCommand Error: command.tag must be provided.");
-        if(!command.execute) throw new Error("DiscordAcccess.setCommand Error: command.execute must be provided.");
+        if (!command) throw new Error("DiscordAcccess.setCommand Error: command must be provided.");
+        if (!command.data) throw new Error("DiscordAcccess.setCommand Error: command.data must be provided.");
+        if (!command.tag) throw new Error("DiscordAcccess.setCommand Error: command.tag must be provided.");
+        if (!command.execute) throw new Error("DiscordAcccess.setCommand Error: command.execute must be provided.");
         commands.set(command.data.name, command);
     },
 
@@ -65,7 +65,7 @@ module.exports = {
      * @returns {Discord.Guild | undefined}
      */
     getGuild(guildId) {
-        if(!client) throw new Error("DiscordAcccess.getGuild Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.getGuild Error: client not set.");
         return client.guilds.cache.get(guildId);
     },
 
@@ -76,7 +76,7 @@ module.exports = {
      * @returns 
      */
     permissionsCheck(channel, permissions) {
-        if(!client) throw new Error("DiscordAcccess.permissionsCheck Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.permissionsCheck Error: client not set.");
         return channel.permissionsFor(client.user).has(permissions);
     },
 
@@ -86,7 +86,7 @@ module.exports = {
      * @returns {Discord.Channel | undefined}
      */
     getChannel(channelId) {
-        if(!client) throw new Error("DiscordAcccess.getChannel Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.getChannel Error: client not set.");
         return client.channels.cache.get(channelId);
     },
 
@@ -96,30 +96,30 @@ module.exports = {
      * @returns {Promise<Discord.User | undefined>}
      */
     async getUser(userId) {
-        if(!client) throw new Error("DiscordAcccess.getUser Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.getUser Error: client not set.");
         return client.users.fetch(userId);
     },
 
     get client() {
-        if(!client) throw new Error("DiscordAccess.client Error: client not set.");
+        if (!client) throw new Error("DiscordAccess.client Error: client not set.");
         return {
             id: client.user.id,
             tag: client.user.tag,
-            avatar: client.user.displayAvatarURL({extension: "png"}),
+            avatar: client.user.displayAvatarURL({ extension: "png" }),
         };
     },
 
-    get emojis () {
-        if(!client) throw new Error("DiscordAccess.emojis Error: client not set.");
+    get emojis() {
+        if (!client) throw new Error("DiscordAccess.emojis Error: client not set.");
         return client.emojis;
     },
 
     /**
      * 
      * @param {string} msg - 要記錄的訊息內容
-     */    
+     */
     log(msg) {
-        if(!client) throw new Error("DiscordAcccess.log Error: client not set.");
+        if (!client) throw new Error("DiscordAcccess.log Error: client not set.");
         console.log(msg);
         client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
     },

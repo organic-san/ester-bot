@@ -20,11 +20,11 @@ module.exports = class GuildData {
      * @param {string} id 
      */
     constructor(id) {
-        if(!id) throw new Error("GuildData Constructor Error: id must be provided.");
+        if (!id) throw new Error("GuildData Constructor Error: id must be provided.");
         this.#guildId = id;
         const { count } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(id);
 
-        if(count != 0) return;
+        if (count != 0) return;
 
         // 當伺服器不存在時，建立資料
         const guild = DCAccess.getGuild(id);
@@ -148,7 +148,7 @@ module.exports = class GuildData {
      */
     changeWelcomeMessageState(opt, state) {
         const optwork = opt === "joinMessage" ? "joinMessage" : opt === "leaveMessage" ? "leaveMessage" : undefined;
-        if(!optwork) return;
+        if (!optwork) return;
         db.prepare(`UPDATE ${process.env.MAINTABLE} SET ${optwork} = ? WHERE id = ?`).run(state ? 1 : 0, this.#guildId);
     }
 
@@ -181,9 +181,9 @@ module.exports = class GuildData {
      * @returns {{joinMessage: boolean, joinMessageContent: string, joinChannel: string, leaveMessage: boolean, leaveMessageContent: string, leaveChannel: string}}
      */
     getWelcomeMessageSetting() {
-        const { 
+        const {
             joinMessage,
-            joinMessageContent, 
+            joinMessageContent,
             joinChannel,
             leaveMessage,
             leaveMessageContent,
@@ -207,18 +207,18 @@ module.exports = class GuildData {
             FROM ${process.env.MAINTABLE}
             WHERE id = ?
         `).get(this.#guildId);
-        if(!joinMessage) return;
+        if (!joinMessage) return;
 
         let channel = DCAccess.getChannel(joinChannel);
-        if(!channel) {
+        if (!channel) {
             channel = DCAccess.getGuild(this.#guildId).systemChannel;
-            if(!channel) return;
+            if (!channel) return;
         }
-        if(!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
+        if (!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
             !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
-        if(!joinMessageContent) return channel.send(`<@${user.id}> ，歡迎來到 **${guild.name}** !`);
+        if (!joinMessageContent) return channel.send(`<@${user.id}> ，歡迎來到 **${guild.name}** !`);
         const msg = joinMessageContent.replace(/<user>/g, `<@${user.id}>`).replace(/<server>/g, `**${guild.name}**`);
         channel.send(msg);
 
@@ -235,18 +235,18 @@ module.exports = class GuildData {
             FROM ${process.env.MAINTABLE} 
             WHERE id = ?
         `).get(this.#guildId);
-        if(!leaveMessage) return;
+        if (!leaveMessage) return;
 
         let channel = DCAccess.getChannel(leaveChannel);
-        if(!channel) {
+        if (!channel) {
             channel = DCAccess.getGuild(this.#guildId).systemChannel;
-            if(!channel) return;
+            if (!channel) return;
         }
-        if(!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
+        if (!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
             !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
-        if(!leaveMessageContent) return channel.send(`**${user.tag}** 已遠離我們而去。`);
+        if (!leaveMessageContent) return channel.send(`**${user.tag}** 已遠離我們而去。`);
         const msg = leaveMessageContent.replace(/<user>/g, `**${user.tag}**`).replace(/<server>/g, `**${guild.name}**`);
         channel.send(msg);
 
@@ -296,10 +296,10 @@ module.exports = class GuildData {
      * @returns {Promise<User>}
      */
     async getUser(userId) {
-        if(this.#userList.has(userId)) return this.#userList.get(userId);
+        if (this.#userList.has(userId)) return this.#userList.get(userId);
 
         const user = await DCAccess.getUser(userId);
-        if(!user) return undefined;
+        if (!user) return undefined;
 
         this.#userList.set(userId, new User(userId, this.#guildId, user.tag));
         return this.#userList.get(userId);
@@ -317,8 +317,8 @@ module.exports = class GuildData {
 
     delete() {
         const { count, name } = db.prepare(`SELECT COUNT(*) as count, name FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId);
-        if(count === 0) return;
-        
+        if (count === 0) return;
+
         db.prepare(`
             DELETE FROM ${process.env.USERTABLE}
             WHERE guildId = ?

@@ -23,7 +23,7 @@ module.exports = {
      * 隨機排序陣列
      * @param {Array} array 
      */
-    ArrayShuffle: function(array) {
+    ArrayShuffle: function (array) {
         for (let i = array.length - 1; i > 0; i--) {
             let j = Math.floor(Math.random() * (i + 1));
             [array[i], array[j]] = [array[j], array[i]];
@@ -37,12 +37,12 @@ module.exports = {
      * @param {Discord.Client} client 
      * @returns 
      */
-    UserResolveFromMention: function(client, mention) {
+    UserResolveFromMention: function (client, mention) {
         const matches = mention.match(/^<@!?(\d+)>$/) ?? mention.match(/\d+/);
         if (!matches) return;
         console.log(matches);
         let id = "";
-        if(matches[0].startsWith("<")) id = matches[1];
+        if (matches[0].startsWith("<")) id = matches[1];
         else id = matches[0];
         return client.users.cache.get(id);
     },
@@ -53,11 +53,11 @@ module.exports = {
      * @param {Discord.Guild} guild
      * @returns 
      */
-     MemberResolveFromMention: function(guild, mention) {
+    MemberResolveFromMention: function (guild, mention) {
         const matches = mention.match(/^<@!?(\d+)>$/) ?? mention.match(/\d+/);
         if (!matches) return;
         let id = "";
-        if(matches[0].startsWith("<")) id = matches[1];
+        if (matches[0].startsWith("<")) id = matches[1];
         else id = matches[0];
         return guild.members.cache.get(id);
     },
@@ -68,11 +68,11 @@ module.exports = {
      * @param {Discord.Client} client 
      * @returns 
      */
-    ChannelResolveFromMention: function(client, mention) {
+    ChannelResolveFromMention: function (client, mention) {
         const matches = mention.match(/^<#!?(\d+)>$/) ?? mention.match(/\d+/);
         if (!matches) return;
         let id = "";
-        if(matches[0].startsWith("<")) id = matches[1];
+        if (matches[0].startsWith("<")) id = matches[1];
         else id = matches[0];
         return client.channels.cache.get(id);
     },
@@ -84,7 +84,7 @@ module.exports = {
      * @param {number} seed 隨機種子
      * @returns 隨機產生結果
      */
-    seededRandom: function(seed, max, min) {
+    seededRandom: function (seed, max, min) {
         max = max ?? 1;
         min = min ?? 0;
         seed = seed ?? Math.random() * 233280;
@@ -98,9 +98,9 @@ module.exports = {
      * @param {string} substring 
      * @returns 是否為表情符號
      */
-    isEmojiCharacter: function(substring) {
+    isEmojiCharacter: function (substring) {
         //#region 表情符號檢測器
-        for ( var i = 0; i < substring.length; i++) {
+        for (var i = 0; i < substring.length; i++) {
             var hs = substring.charCodeAt(i);
             if (0xd800 <= hs && hs <= 0xdbff) {
                 if (substring.length > 1) {
@@ -125,8 +125,8 @@ module.exports = {
                 } else if (0x3297 <= hs && hs <= 0x3299) {
                     return true;
                 } else if (hs == 0xa9 || hs == 0xae || hs == 0x303d || hs == 0x3030
-                        || hs == 0x2b55 || hs == 0x2b1c || hs == 0x2b1b
-                        || hs == 0x2b50) {
+                    || hs == 0x2b55 || hs == 0x2b1c || hs == 0x2b1b
+                    || hs == 0x2b50) {
                     return true;
                 }
             }
@@ -153,13 +153,13 @@ module.exports = {
     },
 
     createErrorLog(err, command) {
-        const errorLog = 
-            `${err}\n\n` + 
-            (command ? "Error Command: " + command + "\n\n" : "") + 
+        const errorLog =
+            `${err}\n\n` +
+            (command ? "Error Command: " + command + "\n\n" : "") +
             `Error Info: ${JSON.stringify(err, null, '\t')}\n\n` +
             `Error Route: ${err.stack}`;
         let filename = __dirname + `/../data/error/${this.localISOTimeNow()}.txt`.split(":").join("-");
-        fs.writeFile(filename, errorLog, function (err){
+        fs.writeFile(filename, errorLog, function (err) {
             if (err)
                 console.log(err);
         });

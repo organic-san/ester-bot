@@ -30,20 +30,20 @@ module.exports = {
      * @param {Discord.CommandInteraction} interaction 
      */
     async execute(interaction) {
-        if(interaction.options.getSubcommand() === "options") {
+        if (interaction.options.getSubcommand() === "options") {
             const options = interaction.options.getString("options").split(/,|，/g);
 
             const result = Math.floor(Math.random() * options.length);
 
             interaction.reply(`${options.length}個選項: [${options.join(', ')}] => ${options[result]}`);
 
-        } else if(interaction.options.getSubcommand() === "numbers") {
+        } else if (interaction.options.getSubcommand() === "numbers") {
             const side = interaction.options.getInteger('side');
             const count = interaction.options.getInteger('amount') ?? 1;
 
             if (side > 10000 || count > 100)
                 return interaction.reply({ content: `骰子太大顆了！[骰子面數上限:10000][骰子數量上限:100]`, ephemeral: true });
-            
+
             const diceList = [];
             let total = 0;
             for (let step = 0; step < count; step++) {

@@ -3,71 +3,71 @@ const Discord = require('discord.js');
 const GuildDataMap = require('../class/guildDataMap');
 
 module.exports = {
-	data: new Discord.SlashCommandBuilder()
-		.setName('emoji-convert')
-		.setDescription('表情符號轉換功能，轉換後的訊息會用跟你的頭像一樣的機器人代為發送')
-        .addStringOption(opt => 
+    data: new Discord.SlashCommandBuilder()
+        .setName('emoji-convert')
+        .setDescription('表情符號轉換功能，轉換後的訊息會用跟你的頭像一樣的機器人代為發送')
+        .addStringOption(opt =>
             opt.setName("message")
-            .setDescription('要轉換的訊息，在這裡輸入的:emoji:都會轉換成真正的表情符號！(可以用\\n換行)')
-            .setRequired(true)
+                .setDescription('要轉換的訊息，在這裡輸入的:emoji:都會轉換成真正的表情符號！(可以用\\n換行)')
+                .setRequired(true)
         ),
-	tag: "interaction",
+    tag: "interaction",
     /**
      * 
      * @param {Discord.CommandInteraction} interaction 
      */
-	async execute(interaction) {
+    async execute(interaction) {
         const message = interaction.options.getString('message');
-        if(!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks)) 
-            return interaction.reply({content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true}).catch((err) => console.log(err));
+        if (!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks))
+            return interaction.reply({ content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true }).catch((err) => console.log(err));
 
-        if(interaction.channel.isThread())
-            return interaction.reply({content: "沒有辦法在討論串中使用!", ephemeral: true}).catch((err) => console.log(err));
+        if (interaction.channel.isThread())
+            return interaction.reply({ content: "沒有辦法在討論串中使用!", ephemeral: true }).catch((err) => console.log(err));
 
         const notEmoji = message.split(/:\w+:/g);
         const isEmoji = [...message.matchAll(/:\w+:/g)];
         isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
 
-        if(isEmoji.length <= 0) 
-            return interaction.reply({content: "訊息裡面沒有包含表情符號，我無法轉換!", ephemeral: true}).catch((err) => console.log(err));
+        if (isEmoji.length <= 0)
+            return interaction.reply({ content: "訊息裡面沒有包含表情符號，我無法轉換!", ephemeral: true }).catch((err) => console.log(err));
 
         isEmoji.forEach((emoji, index) => {
-            if(!emoji) return;
-            if(notEmoji[index].endsWith('<')) return;
-            if(notEmoji[index].endsWith('<a')) return;
+            if (!emoji) return;
+            if (notEmoji[index].endsWith('<')) return;
+            if (notEmoji[index].endsWith('<a')) return;
             let find = interaction.client.emojis.cache.find(e => e.name === emoji.slice(1, emoji.length - 1));
-            if(!find) find = interaction.client.emojis.cache.find(e => e.name.includes(emoji.slice(1, emoji.length - 1)));
-            if(!find) find = interaction.client.emojis.resolve(emoji.slice(1, emoji.length - 1));
-            if(find) {
+            if (!find) find = interaction.client.emojis.cache.find(e => e.name.includes(emoji.slice(1, emoji.length - 1)));
+            if (!find) find = interaction.client.emojis.resolve(emoji.slice(1, emoji.length - 1));
+            if (find) {
                 isEmoji[index] = find.toString();
             } else {
                 isEmoji[index] = emoji;
             }
         })
 
-        interaction.reply({content: "訊息已送出!", ephemeral: true}).catch((err) => console.log(err));
+        interaction.reply({ content: "訊息已送出!", ephemeral: true }).catch((err) => console.log(err));
         //console.log("isCommand: true: isEmojiWebhook");
 
         let words = [];
-        for(let i = 0; i < notEmoji.length * 2 - 1; i++)
-            i % 2 ? words.push(isEmoji[(i-1)/2]) : words.push(notEmoji[i/2]);
+        for (let i = 0; i < notEmoji.length * 2 - 1; i++)
+            i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
         words = words.join("").split("\\n").join("\n");
 
         const webhooks = await interaction.channel.fetchWebhooks();
         let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
-        if(!webhook) {
+        if (!webhook) {
             interaction.channel.createWebhook({
                 name: interaction.member.displayName,
-                avatar: interaction.user.displayAvatarURL({extension: "png"})
+                avatar: interaction.user.displayAvatarURL({ extension: "png" })
             })
-                .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
+                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
                 .catch(console.error);
         } else {
             await webhook.edit({
                 name: interaction.member.displayName,
-                avatar: interaction.user.displayAvatarURL({extension: "png"})
+                avatar: interaction.user.displayAvatarURL({ extension: "png" })
             })
-                .then(webhook => webhook.send({content: words, allowedMentions: {repliedUser: false}}))
+                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
                 .catch(console.error);
         }
 

@@ -20,7 +20,7 @@ class DB {
     }
 
     static getConnection() {
-        if(!DB.#instance) {
+        if (!DB.#instance) {
             new DB();
         }
         return DB.#instance;

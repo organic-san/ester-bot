@@ -16,10 +16,10 @@ const rest = new REST().setToken(process.env.DCKEY_TOKEN);
 	try {
 		console.log('Started refreshing application (/) commands.');
 
-        await rest.put(
-            Routes.applicationCommands(process.env.BOT_ID),
-            { body: commands },
-        );
+		await rest.put(
+			Routes.applicationCommands(process.env.BOT_ID),
+			{ body: commands },
+		);
 
 		console.log('Successfully reloaded application (/) commands.');
 	} catch (error) {

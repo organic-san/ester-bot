@@ -24,16 +24,16 @@ module.exports = class User {
      * @param {string} userTag
      */
     constructor(userId, guildId, userTag) {
-        if(!userId || !guildId) throw new Error("User Constructor Error: id and guildId must be provided.");
+        if (!userId || !guildId) throw new Error("User Constructor Error: id and guildId must be provided.");
         // 檢查該伺服器是否存在
-        const { count : guildCount } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(guildId);
-        if(guildCount === 0) throw new Error("User Constructor Error: guild not found.");
-        
+        const { count: guildCount } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(guildId);
+        if (guildCount === 0) throw new Error("User Constructor Error: guild not found.");
+
         this.#userId = userId;
         this.#guildId = guildId;
 
         const { count: userCount } = db.prepare(`SELECT COUNT(*) as count FROM ${this.#DBName} WHERE id = ?`).get(this.#databaseId);
-        if(userCount != 0) return;
+        if (userCount != 0) return;
 
         db.prepare(`
             INSERT INTO ${this.#DBName} VALUES (
@@ -79,7 +79,7 @@ module.exports = class User {
     }
 
     async update() {
-        if(Date.now() - this.#lastTagChangeTime < 24 * 60 * 60 * 1000) return;
+        if (Date.now() - this.#lastTagChangeTime < 24 * 60 * 60 * 1000) return;
         const user = await DCAccess.getUser(this.#userId);
         db.prepare(`UPDATE ${this.#DBName} SET tag = ? WHERE userId = ?`).run(user.tag, this.#userId);
         this.#userTag = user.tag;
@@ -125,16 +125,16 @@ module.exports = class User {
     addexp(expIncrease, channel, isNewMessage, isSkipTimeCheck) {
         isSkipTimeCheck ??= false;
         isNewMessage ??= true;
-        const {levelsReact, levelsReactChannel, "levels": isLevelsOpen} = db.prepare(`
+        const { levelsReact, levelsReactChannel, "levels": isLevelsOpen } = db.prepare(`
             SELECT levelsReact, levelsReactChannel, levels
             FROM ${process.env.MAINTABLE} 
             WHERE id = ?
         `).get(this.#guildId);
 
         // 沒有開啟等級系統的情況
-        if(!isLevelsOpen) return;
+        if (!isLevelsOpen) return;
 
-        let {"DM": dm, exp, levels} = db.prepare(`
+        let { "DM": dm, exp, levels } = db.prepare(`
             SELECT DM, exp, levels
             FROM ${this.#DBName}
             WHERE id = ?
@@ -143,11 +143,11 @@ module.exports = class User {
         // 超過冷卻的情況
         if (Date.now() - this.#lastMessageTime > messageCooldown * 1000 || isSkipTimeCheck) exp += expIncrease;
 
-        if(isNewMessage) {
+        if (isNewMessage) {
             this.#lastMessageTime = Date.now();
         }
         const isLevelUp = (exp >= (levelUpCalc(levels)) * avgLevelPoint);
-        if(isLevelUp) levels++;
+        if (isLevelUp) levels++;
 
         db.prepare(`UPDATE ${this.#DBName} SET exp = ?, levels = ? WHERE id = ?`)
             .run(exp, levels, this.#databaseId);
@@ -156,25 +156,25 @@ module.exports = class User {
         if (!isLevelUp) return;
 
         //發送升等訊息
-        switch (levelsReact) { 
+        switch (levelsReact) {
             case "MessageChannel":
-                channel.send(`<@${this.#userId}> 升級到 **${levels}** 等了！`).catch(() => {});
+                channel.send(`<@${this.#userId}> 升級到 **${levels}** 等了！`).catch(() => { });
                 break;
 
             case "SpecifyChannel":
-                if(levelsReactChannel){
+                if (levelsReactChannel) {
                     const ch = DCAccess.getChannel(levelsReactChannel);
-                    ch?.send(`<@${this.#userId}> 升級到 **${levels}** 等了！`).catch(() => {});
+                    ch?.send(`<@${this.#userId}> 升級到 **${levels}** 等了！`).catch(() => { });
                 }
                 break;
 
             case 'DMChannel':
-                if(dm){
+                if (dm) {
                     (async () => {
                         const user = await DCAccess.getUser(this.#userId);
-                        user.send(`您在 **${channel.guild.name}** 的等級提升到 **${levels}** 等了！`).catch(() => {})
-                        if(levels === 1){
-                            user.send(`在 **${channel.guild.name}** 輸入 \`/levels no-dm\` 可以關閉該伺服器的私訊升等訊息。`).catch(() => {})
+                        user.send(`您在 **${channel.guild.name}** 的等級提升到 **${levels}** 等了！`).catch(() => { })
+                        if (levels === 1) {
+                            user.send(`在 **${channel.guild.name}** 輸入 \`/levels no-dm\` 可以關閉該伺服器的私訊升等訊息。`).catch(() => { })
                         }
                     })();
                 }
