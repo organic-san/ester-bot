@@ -76,7 +76,7 @@ const announcement = async (msgList, level) => {
 
 // 反覆偵測地震
 setInterval(async () => {
-    console.log("偵測地震")
+    console.log("偵測地震: " + new Date());
     let { msgList } = await earthquake(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization=${process.env.CWBKEY}` +
         `&format=JSON&AreaName=&StationName=A` +
         `&timeFrom=${textCommand.localISOTime(Record.get("lastSmallEarthquakeTime")) || "2023-08-01T00:00:00"}`);
