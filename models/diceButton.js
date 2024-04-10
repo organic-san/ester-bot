@@ -26,6 +26,9 @@ DCAccess.on(Discord.Events.InteractionCreate,
 
         // 目前暫時只處理dice指令
         if(buttonInfo[0] === 'dice') {
+            if(!interaction.member.permissionsIn(interaction.channel)?.has(Discord.PermissionsBitField.Flags.SendMessages)) 
+                return interaction.reply({ content: "你無法在這個頻道使用指令!", ephemeral: true });
+            
             if(buttonInfo[1] === 'n') {
                 const side = parseInt(buttonInfo[2]);
                 const count = parseInt(buttonInfo[3]);
