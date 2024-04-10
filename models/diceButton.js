@@ -33,11 +33,12 @@ DCAccess.on(Discord.Events.InteractionCreate,
                 for(let i = 0; i < count; i++) {
                     result.push(Math.floor(Math.random() * side) + 1);
                 }
-                interaction.reply(`${side}面骰 ${count}顆: [${result}點] => ${result.reduce((sum, val) => sum + val, 0)}點`);
+                interaction.reply(`${interaction.user}\n${side}面骰 ${count}顆: [${result}點] => ${result.reduce((sum, val) => sum + val, 0)}點`);
+
             } else if(buttonInfo[1] === 'o') {
                 const options = buttonInfo.slice(2);
                 const result = Math.floor(Math.random() * options.length);
-                interaction.reply(`${options.length}個選項: [${options.join(', ')}] => ${options[result]}`);
+                interaction.reply(`${interaction.user}\n${options.length}個選項: [${options.join(', ')}] => ${options[result]}`);
             }
         }
     });
