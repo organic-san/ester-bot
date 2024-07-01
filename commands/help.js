@@ -32,7 +32,11 @@ module.exports = {
                 new Discord.ButtonBuilder()
                     .setLabel('使用與隱私權條款')
                     .setStyle(Discord.ButtonStyle.Link)
-                    .setURL("https://organic-san.gitbook.io/esterbot.help/others/privacy-rule")
+                    .setURL("https://organic-san.gitbook.io/esterbot.help/others/privacy-rule"),
+                new Discord.ButtonBuilder()
+                    .setLabel('贊助這個機器人！')
+                    .setStyle(Discord.ButtonStyle.Link)
+                    .setURL("https://buymeacoffee.com/organic_san")
             )
 
         await interaction.reply({ content: '對我的功能有興趣嗎?我把能幫助你的資料都列出來了。', components: [row, row2] });
