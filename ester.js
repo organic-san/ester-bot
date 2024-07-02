@@ -100,6 +100,7 @@ client.on(Discord.Events.InteractionCreate, async interaction => {
 
     //等級更新
     const guildUser = await guildData.getUser(interaction.user.id);
+    if(!guildUser) return;
     guildUser.addexp(textCommand.expAddFormula(), interaction.channel);
 });
 
@@ -122,6 +123,7 @@ client.on(Discord.Events.MessageCreate, async msg => {
 
     // 等級更新
     const guildUser = await guildData.getUser(msg.author.id);
+    if(!guildUser) return;
     guildUser.addexp(textCommand.expAddFormula(), msg.channel);
     guildUser.increaseMsg();
     guildUser.update();
