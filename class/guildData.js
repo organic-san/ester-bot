@@ -220,11 +220,13 @@ module.exports = class GuildData {
             !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
-        if (!joinMessageContent) return channel.send(`<@${user.id}> ，歡迎來到 **${guild.name}** !`);
-        const msg = joinMessageContent
+        let msg = "";
+        if (!joinMessageContent) msg = `<@${user.id}> ，歡迎來到 **${guild.name}** !`;
+        else msg = joinMessageContent
             .replace(/<user>/g, `<@${user.id}>`)
             .replace(/<server>/g, `**${guild.name}**`)
-            .replace(/<member_count>/g, `**${guild.memberCount}**`);
+            .replace(/<member_count>/g, `**${guild.memberCount}**`)
+            .replace(/\\n/g, `\n`);
 
         const canvas = createCanvas(640, 320);
         const ctx = canvas.getContext('2d');
