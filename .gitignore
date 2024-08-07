@@ -10,4 +10,8 @@ node_modules/
 *.db
 *test.js
 */backup
+<<<<<<< HEAD
 log.txt
+=======
+*log.txt
+>>>>>>> 9511fff6ebe6f9481234876e0dbd5506406dd34e

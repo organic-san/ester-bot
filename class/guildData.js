@@ -1,5 +1,7 @@
 const Discord = require('discord.js');
 const DCAccess = require('./discordAccess.js');
+const { createCanvas, loadImage } = require('canvas')
+const axios = require('axios');
 
 const DB = require('./database.js');
 const User = require('./guildUser.js');
@@ -201,7 +203,7 @@ module.exports = class GuildData {
      * @param {User} user 
      * @returns {Promise<void>}
      */
-    sendWelcomeMessage(user) {
+    async sendWelcomeMessage(user) {
         const { joinMessage, joinMessageContent, joinChannel } = db.prepare(`
             SELECT joinMessage, joinMessageContent, joinChannel 
             FROM ${process.env.MAINTABLE}
@@ -219,8 +221,86 @@ module.exports = class GuildData {
 
         const guild = DCAccess.getGuild(this.#guildId);
         if (!joinMessageContent) return channel.send(`<@${user.id}> ，歡迎來到 **${guild.name}** !`);
-        const msg = joinMessageContent.replace(/<user>/g, `<@${user.id}>`).replace(/<server>/g, `**${guild.name}**`);
-        channel.send(msg);
+        const msg = joinMessageContent
+            .replace(/<user>/g, `<@${user.id}>`)
+            .replace(/<server>/g, `**${guild.name}**`)
+            .replace(/<member_count>/g, `**${guild.memberCount}**`);
+
+        const canvas = createCanvas(640, 320);
+        const ctx = canvas.getContext('2d');
+
+        const img = await loadImage(`./pic/BG0${Math.floor(Math.random() * 8) + 1}.png`);
+        ctx.drawImage(img, 0, 0, 640, 320);
+
+        const circleRadius = 87;
+        const circleX = canvas.width / 2;
+        const circleY = canvas.height / 3 + 20;
+
+        ctx.beginPath(); // 開始新的路徑
+        ctx.arc(circleX, circleY, circleRadius, 0, Math.PI * 2, false);
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fill(); 
+        ctx.closePath(); 
+
+        const avatarUrl = await user.avatarUrl(256);
+
+        const avatarBuffer = (await axios.get(avatarUrl, { responseType: 'arraybuffer' })).data;
+        const avatarImg = await loadImage(avatarBuffer);
+        const avatarCircleRadius = 80;
+
+        ctx.save(); // 儲存當前畫布狀態
+        ctx.beginPath();
+        ctx.arc(circleX, circleY, avatarCircleRadius, 0, Math.PI * 2, false);
+        ctx.clip(); // 剪裁畫布為圓形區域
+        ctx.closePath();
+
+        const imageSize = circleRadius * 2
+        const imageX = circleX - circleRadius;
+        const imageY = circleY - circleRadius;
+
+        ctx.drawImage(avatarImg, imageX, imageY, imageSize, imageSize); // 繪製圖像
+
+        ctx.restore(); // 還原畫布狀態
+
+        const borderWidth = 30;
+        ctx.strokeStyle = '#C2C4F2';
+        ctx.lineWidth = borderWidth;
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+        ctx.textAlign = 'center';
+
+        // 添加文字背景
+        ctx.font = 'bold 24px Microsoft JhengHei'; 
+        const textX = canvas.width / 2;
+        const textY = (canvas.height / 3) * 2 + 40; 
+        const textPadding = 10;
+        const textWidth = ctx.measureText(`${user.tag} 加入了這個伺服器`).width;
+        const backgroundHeight = 40;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // 半透明黑色背景
+        ctx.fillRect(textX - textWidth / 2 - textPadding, textY - backgroundHeight / 2 - 7, textWidth + textPadding * 2, backgroundHeight);
+
+        // 添加白色文字
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(`${user.tag} 加入了這個伺服器`, textX, textY);
+
+        // 添加文字背景
+        ctx.font = '20px Microsoft JhengHei';
+        const subTextY = textY + 30;
+        const subTextWidth = ctx.measureText(`伺服器成員 #${guild.memberCount}`).width;
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // 半透明黑色背景
+        const backgroundHeightSub = 28;
+        ctx.fillRect(textX - subTextWidth / 2 - textPadding, subTextY - backgroundHeightSub / 2 - 3, subTextWidth + textPadding * 2, backgroundHeightSub);
+
+        // 添加灰色文字
+        ctx.fillStyle = '#B4B4B4';
+        ctx.fillText(`伺服器成員 #${guild.memberCount}`, textX, subTextY);
+
+        const attachment = new Discord.AttachmentBuilder(canvas.toBuffer(), 'image.png');
+        
+        channel.send({
+            content: msg,
+            files: [attachment]
+        });
 
         DCAccess.log(`歡迎訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
@@ -247,7 +327,10 @@ module.exports = class GuildData {
 
         const guild = DCAccess.getGuild(this.#guildId);
         if (!leaveMessageContent) return channel.send(`**${user.tag}** 已遠離我們而去。`);
-        const msg = leaveMessageContent.replace(/<user>/g, `**${user.tag}**`).replace(/<server>/g, `**${guild.name}**`);
+        const msg = leaveMessageContent
+            .replace(/<user>/g, `**${user.tag}**`)
+            .replace(/<server>/g, `**${guild.name}**`)
+            .replace(/<member_count>/g, `**${guild.memberCount}**`);
         channel.send(msg);
 
         DCAccess.log(`送別訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
