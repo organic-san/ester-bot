@@ -38,7 +38,7 @@ module.exports = {
                                 )
                         ).addStringOption(opt =>
                             opt.setName('message')
-                                .setDescription('歡迎訊息的內容。需填入標記:(必填)<user>、(選填)<server>。設為空白將使用預設文字。')
+                                .setDescription('歡迎訊息的內容。需填入標記:(必填)<user>、(選填)<server>、<member_count>。設為空白將使用預設文字。')
                         )
                 )
         ).addSubcommand(opt =>
@@ -163,8 +163,17 @@ module.exports = {
                         content: '<server>標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器名稱。',
                         ephemeral: true
                     });
+
+                    const memberCountMatch = message.match(/<(M|m)(E|e)(M|m)(B|b)(E|e)(R|r)_(C|c)(O|o)(U|u)(N|n)(T|t)>/g);
+                    if (memberCountMatch?.length > 1) return interaction.reply({
+                        content: '<member_count>標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器人數。',
+                        ephemeral: true
+                    });
+
                     message = message.split(userMatch[0]).join('<user>');
                     if (serverMatch) message = message.split(serverMatch[0]).join('<server>');
+                    if (memberCountMatch) message = message.split(memberCountMatch[0]).join('<member_count>');
+                    
                     if (setType === 0) guild.setJoinMessageContent(message);
                     else guild.setLeaveMessageContent(message);
                 } else {

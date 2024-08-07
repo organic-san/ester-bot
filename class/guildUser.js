@@ -86,6 +86,10 @@ module.exports = class User {
         this.#lastTagChangeTime = Date.now();
     }
 
+    async avatarUrl(size) {
+        return (await DCAccess.getUser(this.#userId)).displayAvatarURL({ extension: "png", size: size });
+    }
+
     increaseMsg() {
         db.prepare(`UPDATE ${this.#DBName} SET msgs = msgs + 1 WHERE id = ?`).run(this.#databaseId);
     }
