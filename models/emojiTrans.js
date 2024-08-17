@@ -53,6 +53,7 @@ DCAccess.on(Discord.Events.MessageCreate,
 
         const isThread = msg.channel.isThread();
         const channel = isThread ? msg.channel.parent : msg.channel;
+        if(channel.type === Discord.ChannelType.GuildForum) return;
         const webhooks = await channel.fetchWebhooks();
         const webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
 
