@@ -21,9 +21,6 @@ module.exports = {
         if (!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks))
             return interaction.reply({ content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true }).catch((err) => console.log(err));
 
-        if (interaction.channel.isThread() && interaction.channel.parent.type === Discord.ChannelType.GuildForum)
-            return interaction.reply({ content: "沒有辦法在論壇頻道中使用!", ephemeral: true }).catch((err) => console.log(err));
-        
         const notEmoji = message.split(/:\w+:/g);
         const isEmoji = [...message.matchAll(/:\w+:/g)];
         isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
@@ -59,7 +56,7 @@ module.exports = {
 
         const getWebhook = new Promise((resolve, reject) => {
             if(!webhook) {
-                interaction.channel.createWebhook({
+                channel.createWebhook({
                     name: interaction.member.displayName,
                     avatar: interaction.user.displayAvatarURL({ extension: "png" })
                 }).then(webhook => resolve(webhook)).catch(reject);

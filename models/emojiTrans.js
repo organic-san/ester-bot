@@ -53,13 +53,13 @@ DCAccess.on(Discord.Events.MessageCreate,
 
         const isThread = msg.channel.isThread();
         const channel = isThread ? msg.channel.parent : msg.channel;
-        if(channel.type === Discord.ChannelType.GuildForum) return;
+        //if(channel.type === Discord.ChannelType.GuildForum) return;
         const webhooks = await channel.fetchWebhooks();
         const webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
 
         const getWebhook = new Promise((resolve, reject) => {
             if(!webhook) {
-                msg.channel.createWebhook({
+                channel.createWebhook({
                     name: msg.member.displayName,
                     avatar: msg.author.displayAvatarURL({ extension: "png" })
                 }).then(webhook => resolve(webhook)).catch(reject);
