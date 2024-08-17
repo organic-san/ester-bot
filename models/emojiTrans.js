@@ -18,58 +18,64 @@ DCAccess.on(Discord.Events.MessageCreate,
         if (!msg.member.user) return;
         if (msg.member.user.bot) return;
 
-        if (DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ManageWebhooks) &&
-            !msg.content.startsWith('e^')) {
+        if (!DCAccess.permissionsCheck(msg.channel, Discord.PermissionsBitField.Flags.ManageWebhooks) ||
+            msg.content.startsWith('e^')) return;
 
-            if (!msg.channel.isThread() && guildDataMap.get(msg.guild.id).getEmojiTrans()) {
-                const notEmoji = msg.content.split(/:\w+:/g);
-                const isEmoji = [...msg.content.matchAll(/:\w+:/g)];
-                isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
-                let isEmojiChanged = false;
-                if (isEmoji.length > 0) {
-                    isEmoji.forEach((emoji, index) => {
-                        if (!emoji) return;
-                        if (notEmoji[index].endsWith('<')) return;
-                        if (notEmoji[index].endsWith('<a')) return;
-                        let find = DCAccess.emojis.cache.find(e => e.name === emoji.slice(1, emoji.length - 1));
-                        if (!find) find = DCAccess.emojis.cache.find(e => e.name.includes(emoji.slice(1, emoji.length - 1)));
-                        if (!find) find = DCAccess.emojis.resolve(emoji.slice(1, emoji.length - 1));
-                        if (find) {
-                            if (find.guild.id !== msg.guild.id || find.animated) {
-                                isEmojiChanged = true;
-                                isEmoji[index] = find.toString();
-                            }
-                        }
-                    })
+        if (!guildDataMap.get(msg.guild.id).getEmojiTrans()) return;
 
-                    if (isEmojiChanged) {
-                        console.log("功能執行: 表情符號轉換");
-                        Record.increase("emojiTransCount");
-                        let words = [];
-                        for (let i = 0; i < notEmoji.length * 2 - 1; i++)
-                            i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
-                        words = words.join("").split(`<@${DCAccess.client.id}>`).join("");
-
-                        const webhooks = await msg.channel.fetchWebhooks();
-                        let webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
-                        if (!webhook) {
-                            msg.channel.createWebhook(msg.member.displayName, {
-                                avatar: msg.author.displayAvatarURL({ extension: "png" })
-                            })
-                                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
-                                .catch(console.error);
-                        } else {
-                            await webhook.edit({
-                                name: msg.member.displayName,
-                                avatar: msg.author.displayAvatarURL({ extension: "png" })
-                            })
-                                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
-                                .catch(console.error);
-                        }
-                        if (msg.deletable) msg.delete().catch((err) => console.log(err));
-                        return;
-                    }
+        const notEmoji = msg.content.split(/:\w+:/g);
+        const isEmoji = [...msg.content.matchAll(/:\w+:/g)];
+        isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
+        let isEmojiChanged = false;
+        if (isEmoji.length <= 0) return;
+        isEmoji.forEach((emoji, index) => {
+            if (!emoji) return;
+            if (notEmoji[index].endsWith('<')) return;
+            if (notEmoji[index].endsWith('<a')) return;
+            let find = DCAccess.emojis.cache.find(e => e.name === emoji.slice(1, emoji.length - 1));
+            if (!find) find = DCAccess.emojis.cache.find(e => e.name.includes(emoji.slice(1, emoji.length - 1)));
+            if (!find) find = DCAccess.emojis.resolve(emoji.slice(1, emoji.length - 1));
+            if (find) {
+                if (find.guild.id !== msg.guild.id || find.animated) {
+                    isEmojiChanged = true;
+                    isEmoji[index] = find.toString();
                 }
             }
-        }
+        })
+
+        if (!isEmojiChanged) return;
+        console.log("功能執行: 表情符號轉換");
+        Record.increase("emojiTransCount");
+        let words = [];
+        for (let i = 0; i < notEmoji.length * 2 - 1; i++)
+            i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
+        words = words.join("").split(`<@${DCAccess.client.id}>`).join("");
+
+        const isThread = msg.channel.isThread();
+        const channel = isThread ? msg.channel.parent : msg.channel;
+        const webhooks = await channel.fetchWebhooks();
+        let webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
+
+        const getWebhook = new Promise((resolve, reject) => {
+            if(!webhook) {
+                msg.channel.createWebhook(msg.member.displayName, {
+                    avatar: msg.author.displayAvatarURL({ extension: "png" })
+                }).then(webhook => resolve(webhook)).catch(reject);
+            } else {
+                webhook.edit({
+                    name: msg.member.displayName,
+                    avatar: msg.author.displayAvatarURL({ extension: "png" })
+                }).then(webhook => resolve(webhook)).catch(reject);
+            }
+        });
+
+        getWebhook.then(webhook => {
+            if(isThread)
+                webhook.send({ content: words, allowedMentions: { repliedUser: false }, threadId: msg.channel.id })
+            else 
+                webhook.send({ content: words, allowedMentions: { repliedUser: false }})
+        });
+
+        if (msg.deletable) msg.delete().catch((err) => console.log(err));
+        return;
     });
