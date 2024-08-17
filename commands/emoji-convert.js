@@ -21,9 +21,6 @@ module.exports = {
         if (!interaction.channel.permissionsFor(interaction.client.user).has(Discord.PermissionsBitField.Flags.ManageWebhooks))
             return interaction.reply({ content: "我缺少操作webhook的權限，沒有辦法在這個頻道傳送訊息!", ephemeral: true }).catch((err) => console.log(err));
 
-        if (interaction.channel.isThread())
-            return interaction.reply({ content: "沒有辦法在討論串中使用!", ephemeral: true }).catch((err) => console.log(err));
-
         const notEmoji = message.split(/:\w+:/g);
         const isEmoji = [...message.matchAll(/:\w+:/g)];
         isEmoji.forEach((v, i) => isEmoji[i] = v[0]);
@@ -46,30 +43,37 @@ module.exports = {
         })
 
         interaction.reply({ content: "訊息已送出!", ephemeral: true }).catch((err) => console.log(err));
-        //console.log("isCommand: true: isEmojiWebhook");
 
         let words = [];
         for (let i = 0; i < notEmoji.length * 2 - 1; i++)
             i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
         words = words.join("").split("\\n").join("\n");
 
-        const webhooks = await interaction.channel.fetchWebhooks();
-        let webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
-        if (!webhook) {
-            interaction.channel.createWebhook({
-                name: interaction.member.displayName,
-                avatar: interaction.user.displayAvatarURL({ extension: "png" })
-            })
-                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
-                .catch(console.error);
-        } else {
-            await webhook.edit({
-                name: interaction.member.displayName,
-                avatar: interaction.user.displayAvatarURL({ extension: "png" })
-            })
-                .then(webhook => webhook.send({ content: words, allowedMentions: { repliedUser: false } }))
-                .catch(console.error);
-        }
+        const isThread = interaction.channel.isThread();
+        const channel = isThread ? interaction.channel.parent : interaction.channel;
+        const webhooks = await channel.fetchWebhooks();
+        const webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
+
+        const getWebhook = new Promise((resolve, reject) => {
+            if(!webhook) {
+                interaction.channel.createWebhook({
+                    name: interaction.member.displayName,
+                    avatar: interaction.user.displayAvatarURL({ extension: "png" })
+                }).then(webhook => resolve(webhook)).catch(reject);
+            } else {
+                webhook.edit({
+                    name: interaction.member.displayName,
+                    avatar: interaction.user.displayAvatarURL({ extension: "png" })
+                }).then(webhook => resolve(webhook)).catch(reject);
+            }
+        });
+
+        getWebhook.then(webhook => {
+            if(isThread)
+                webhook.send({ content: words, allowedMentions: { repliedUser: false }, threadId: interaction.channel.id })
+            else 
+                webhook.send({ content: words, allowedMentions: { repliedUser: false }})
+        });
 
         /*
         if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)) return;
