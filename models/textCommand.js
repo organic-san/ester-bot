@@ -193,6 +193,7 @@ DCAccess.on(Discord.Events.MessageCreate,
                             break;
 
                         case 'close':
+                        case 'restart':
                             DB.closeConnection();
                             process.exit(0);
                             break;
