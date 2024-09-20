@@ -2,8 +2,11 @@ const Discord = require('discord.js');
 
 const DCAccess = require('../class/discordAccess');
 const GuildDataMap = require('../class/guildDataMap');
+const DB = require('../class/database');
 
 const prefix = require('../JSONHome/prefix.json');
+
+const { exec } = require('child_process');
 
 const guildDataMap = new GuildDataMap();
 
@@ -170,6 +173,25 @@ DCAccess.on(Discord.Events.MessageCreate,
                             guildDataMap.backup();
                             break;
 
+                        case 'pull':
+                            exec('git pull', (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`執行 git pull 時發生錯誤: ${error.message}`);
+                                    msg.channel.send(`執行 git pull 時發生錯誤: ${error.message}`);
+                                    return;
+                                }
+                    
+                                if (stderr) {
+                                    console.error(`stderr: ${stderr}`);
+                                    msg.channel.send(`錯誤: ${stderr}`);
+                                    return;
+                                }
+                    
+                                console.log(`stdout: ${stdout}`);
+                                msg.channel.send(`更新成功:\n\`\`\`${stdout}\`\`\``);
+                            });
+                            break;
+
                         case 'close':
                             DB.closeConnection();
                             process.exit(0);
@@ -184,6 +206,7 @@ DCAccess.on(Discord.Events.MessageCreate,
                                 `\`clm [msgid]\` - console log message\n` +
                                 `\`addexp [exp]\` - add author exp\n` +
                                 `\`backup\` - backup database\n` +
+                                `\`pull\` - git pull\n` +
                                 `\`close\` - close the bot`
                             );
                             setTimeout(() => remindmessaged.delete(), 5 * 1000);
