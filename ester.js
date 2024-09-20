@@ -144,14 +144,12 @@ client.on(Discord.Events.GuildMemberAdd, async member => {
 });
 
 client.on(Discord.Events.GuildMemberRemove, async member => {
-    console.log("leave" + member);
     if (!isready) return;
     Record.increase("user_leave");
     if (member.id === client.user.id) return;
 
     const guild = guildDataMap.get(member.guild.id);
     const user = (await guild?.getUser(member.id));
-    console.log(user)
     if (!user) return;
 
     guild.sendLeaveMessage(user);
