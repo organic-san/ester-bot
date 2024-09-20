@@ -272,7 +272,7 @@ module.exports = class GuildData {
         ctx.textAlign = 'center';
 
         // 添加文字背景
-        ctx.font = 'bold 24px Microsoft JhengHei'; 
+        ctx.font = 'bold 24px "Noto Sans CJK"'; 
         const textX = canvas.width / 2;
         const textY = (canvas.height / 3) * 2 + 40; 
         const textPadding = 10;
@@ -286,7 +286,7 @@ module.exports = class GuildData {
         ctx.fillText(`${user.tag} 加入了這個伺服器`, textX, textY);
 
         // 添加文字背景
-        ctx.font = '20px Microsoft JhengHei';
+        ctx.font = '20px "Noto Sans CJK"';
         const subTextY = textY + 30;
         const subTextWidth = ctx.measureText(`伺服器成員 #${guild.memberCount}`).width;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; // 半透明黑色背景
