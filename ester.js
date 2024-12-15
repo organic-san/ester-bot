@@ -183,6 +183,6 @@ client.on(Discord.Events.GuildDelete, guild => {
 
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
-    textCommand.createErrorLog(error);
-    DCAccess.log(`<@${process.env.OWNER1ID}>，發生不可控制的錯誤: ` + error);
+    const errmsg = textCommand.createErrorLog(error);
+    DCAccess.log(`<@${process.env.OWNER1ID}>，發生不可控制的錯誤: ` + error, errmsg);
 });

@@ -41,8 +41,8 @@ DCAccess.on(Discord.Events.InteractionCreate,
             if (command.tag === "interaction") await command.execute(interaction);
         } catch (error) {
             console.error(error);
-            textModule.createErrorLog(error, commandName);
-            DCAccess.log(`<@${process.env.OWNER1ID}>，斜線指令發生意外錯誤: ` + error);
+            const errmsg = textModule.createErrorLog(error, commandName);
+            DCAccess.log(`<@${process.env.OWNER1ID}>，斜線指令發生意外錯誤: ` + error, errmsg);
             try {
                 await interaction.reply({ content: '糟糕! 好像出了點錯誤!', ephemeral: true }).catch(async () => {
                     await interaction.editReply({ content: '糟糕! 好像出了點錯誤!', embeds: [], components: [] });

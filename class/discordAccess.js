@@ -117,10 +117,20 @@ module.exports = {
     /**
      * 
      * @param {string} msg - 要記錄的訊息內容
+     * @param {string} attr - 附加檔案內容(以txt形式輸出)
      */
-    log(msg) {
+    log(msg, attr) {
         if (!client) throw new Error("DiscordAcccess.log Error: client not set.");
+        if(!msg) return;
         console.log(msg);
-        client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
+        if(attr) {
+            let atc = new Discord.AttachmentBuilder(Buffer.from(attr), { name: 'error.txt' });
+            client.channels.cache.get(process.env.CHECK_CH_ID).send({
+                content: msg,
+                files: [atc]
+            });
+        }
+        else
+            client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
     },
 }

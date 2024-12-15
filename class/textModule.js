@@ -158,11 +158,7 @@ module.exports = {
             (command ? "Error Command: " + command + "\n\n" : "") +
             `Error Info: ${JSON.stringify(err, null, '\t')}\n\n` +
             `Error Route: ${err.stack}`;
-        let filename = __dirname + `/../data/error/${this.localISOTimeNow()}.txt`.split(":").join("-");
-        fs.writeFile(filename, errorLog, function (err) {
-            if (err)
-                console.log(err);
-        });
+        return errorLog;
     },
     //#endregion
 
