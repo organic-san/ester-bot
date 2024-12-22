@@ -299,7 +299,7 @@ module.exports = class GuildData {
 
         const attachment = new Discord.AttachmentBuilder(canvas.toBuffer(), 'image.png');
         
-        channel.send({
+        channel?.send({
             content: msg,
             files: [attachment]
         });
