@@ -299,10 +299,10 @@ module.exports = class GuildData {
 
         const attachment = new Discord.AttachmentBuilder(canvas.toBuffer(), 'image.png');
         
-        channel.send?({
+        channel.send({
             content: msg,
             files: [attachment]
-        });
+        }).catch(() => {});
 
         DCAccess.log(`歡迎訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
