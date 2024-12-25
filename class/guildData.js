@@ -216,8 +216,11 @@ module.exports = class GuildData {
             channel = DCAccess.getGuild(this.#guildId).systemChannel;
             if (!channel) return;
         }
+        
         if (!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages) ||
             !DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.ViewChannel)) return;
+
+        if(!channel.isTextBased()) return;
 
         const guild = DCAccess.getGuild(this.#guildId);
         let msg = "";
@@ -302,7 +305,7 @@ module.exports = class GuildData {
         channel.send({
             content: msg,
             files: [attachment]
-        }).catch(() => {});
+        });
 
         DCAccess.log(`歡迎訊息: ${guild.name} (${guild.id}) - ${user.tag} (${user.id})`);
     }
