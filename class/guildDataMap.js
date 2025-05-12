@@ -63,7 +63,9 @@ module.exports = class GuildDataMap {
                 console.log(`progress: ${((t - r) / t * 100).toFixed(1)}%`);
                 return paused ? 0 : 200;
             }
-        })
+        }).then(() => {
+            DCAccess.logFile('資料庫備份: 處理結束', filename);
+        });
     }
 
     clearBackup() {
