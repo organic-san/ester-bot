@@ -173,6 +173,10 @@ DCAccess.on(Discord.Events.MessageCreate,
                             guildDataMap.backup();
                             break;
 
+                        case 'clearbackup':
+                            guildDataMap.clearBackup();
+                            break;
+
                         case 'pull':
                             exec('git pull', (error, stdout, stderr) => {
                                 if (error) {
@@ -207,6 +211,7 @@ DCAccess.on(Discord.Events.MessageCreate,
                                 `\`clm [msgid]\` - console log message\n` +
                                 `\`addexp [exp]\` - add author exp\n` +
                                 `\`backup\` - backup database\n` +
+                                `\`clearbackup\` - remove backup over 7 days\n` +
                                 `\`pull\` - git pull\n` +
                                 `\`close\` - close the bot`
                             );

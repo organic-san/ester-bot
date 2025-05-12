@@ -2,6 +2,7 @@ const Discord = require('discord.js');
 const DB = require('./database.js');
 const GuildData = require('./guildData.js');
 const DCAccess = require('./discordAccess.js');
+const fs = require('fs');
 require('dotenv').config();
 
 module.exports = class GuildDataMap {
@@ -56,14 +57,30 @@ module.exports = class GuildDataMap {
         const db = DB.getConnection();
         let paused = false;
         DCAccess.log('資料庫備份: 處理開始');
-        db.backup(`data/backups/backup-${Date.now()}.db`, {
+        const filename = `data/backups/backup-${Date.now()}.db`;
+        db.backup(filename, {
             progress({ totalPages: t, remainingPages: r }) {
                 console.log(`progress: ${((t - r) / t * 100).toFixed(1)}%`);
                 return paused ? 0 : 200;
             }
-        }).then(() => {
-            DCAccess.log('資料庫備份: 處理結束');
+        })
+    }
+
+    clearBackup() {
+        const files = fs.readdirSync('data/backups');
+        files.forEach(file => {
+            if (file.startsWith('backup-') && file.endsWith('.db')) {
+                const filePath = `data/backups/${file}`;
+                const stats = fs.statSync(filePath);
+                const now = new Date();
+                const diff = now - stats.mtime;
+                if (diff > 7 * 24 * 60 * 60 * 1000) { // 超過7天
+                    fs.unlinkSync(filePath);
+                    DCAccess.log(`刪除備份檔案: ${file}`);
+                }
+            }
         });
+        DCAccess.log('資料庫備份: 清除完成');
     }
 
     /**

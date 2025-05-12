@@ -133,4 +133,23 @@ module.exports = {
         else
             client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
     },
+
+    /**
+     * 
+     * @param {string} msg - 要記錄的訊息內容
+     * @param {string} attr - 附加檔案路徑
+     */
+    async logFile(msg, attr) {
+        if (!client) throw new Error("DiscordAcccess.log Error: client not set.");
+        if(!msg) return false;
+        console.log(msg);
+        if(attr) {
+            await client.channels.cache.get(process.env.CHECK_CH_ID).send({
+                content: msg,
+                files: [attr]
+            });
+        }
+        else await client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
+        return true;
+    },
 }
