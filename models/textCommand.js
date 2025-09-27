@@ -231,10 +231,10 @@ DCAccess.on(Discord.Events.MessageCreate,
                             break;
 
                         case 'cmdupdateg':
-                            exec('node ester-slash-guild.js', (error, stdout, stderr) => {
+                            exec('node ester-slash-global.js', (error, stdout, stderr) => {
                                 if (error) {
-                                    console.error(`執行 ester-slash-guild.js 時發生錯誤: ${error.message}`);
-                                    msg.channel.send(`執行 ester-slash-guild.js 時發生錯誤: ${error.message}`);
+                                    console.error(`執行 ester-slash-global.js 時發生錯誤: ${error.message}`);
+                                    msg.channel.send(`執行 ester-slash-global.js 時發生錯誤: ${error.message}`);
                                     return;
                                 }
                                 if (stderr) {
