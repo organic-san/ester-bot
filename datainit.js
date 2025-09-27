@@ -69,7 +69,7 @@ db.prepare(`
     )
 `).run();
 
-const recordInsert = db.prepare(`INSERT INTO ${process.env.RECORDTABLE} (ConfigKey, ConfigValue) VALUES (?, ?)`);
+const recordInsert = db.prepare(`INSERT INTO ${process.env.RECORDTABLE} (ConfigKey, ConfigValue) VALUES (?, ?) ON CONFLICT(ConfigKey) DO NOTHING`);
 const dataPath = "./data/record.json";
 
 if (fs.existsSync(dataPath)) {
@@ -143,7 +143,7 @@ const userDataArray = [];
 const reactionDataArray = [];
 
 const insertServerData = db.prepare(`
-    INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING
 `);
 const serverDataTrans = db.transaction((list) => {
     for (const server of list) {
@@ -169,7 +169,7 @@ const serverDataTrans = db.transaction((list) => {
 });
 
 const insertUserData = db.prepare(`
-    INSERT INTO ${process.env.USERTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO ${process.env.USERTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING
 `);
 const userDataTrans = db.transaction((list) => {
     for (const user of list) {
@@ -188,7 +188,7 @@ const userDataTrans = db.transaction((list) => {
 });
 
 const insertReactionData = db.prepare(`
-    INSERT INTO ${process.env.REACTIONTABLE} VALUES (?, ?, ?, ?)
+    INSERT INTO ${process.env.REACTIONTABLE} VALUES (?, ?, ?, ?) ON CONFLICT(id, guildId) DO NOTHING
 `);
 const reactionDataTrans = db.transaction((list) => {
     for (const reaction of list) {

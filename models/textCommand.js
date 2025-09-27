@@ -196,6 +196,57 @@ DCAccess.on(Discord.Events.MessageCreate,
                             });
                             break;
 
+                        case 'dbupdate':
+                            exec('node dataupdate.js', (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`執行 dataupdate.js 時發生錯誤: ${error.message}`);
+                                    msg.channel.send(`執行 dataupdate.js 時發生錯誤: ${error.message}`);
+                                    return;
+                                }
+                                if (stderr) {
+                                    console.error(`stderr: ${stderr}`);
+                                    msg.channel.send(`錯誤: ${stderr}`);
+                                    return;
+                                }
+                                console.log(`stdout: ${stdout}`);
+                                msg.channel.send(`更新成功:\n\`\`\`${stdout}\`\`\``);
+                            });
+                            break;
+
+                        case 'cmdupdate':
+                            exec('node ester-slash.js', (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`執行 ester-slash.js 時發生錯誤: ${error.message}`);
+                                    msg.channel.send(`執行 ester-slash.js 時發生錯誤: ${error.message}`);
+                                    return;
+                                }
+                                if (stderr) {
+                                    console.error(`stderr: ${stderr}`);
+                                    msg.channel.send(`錯誤: ${stderr}`);
+                                    return;
+                                }
+                                console.log(`stdout: ${stdout}`);
+                                msg.channel.send(`更新成功:\n\`\`\`${stdout}\`\`\``);
+                            });
+                            break;
+
+                        case 'cmdupdateg':
+                            exec('node ester-slash-guild.js', (error, stdout, stderr) => {
+                                if (error) {
+                                    console.error(`執行 ester-slash-guild.js 時發生錯誤: ${error.message}`);
+                                    msg.channel.send(`執行 ester-slash-guild.js 時發生錯誤: ${error.message}`);
+                                    return;
+                                }
+                                if (stderr) {
+                                    console.error(`stderr: ${stderr}`);
+                                    msg.channel.send(`錯誤: ${stderr}`);
+                                    return;
+                                }
+                                console.log(`stdout: ${stdout}`);
+                                msg.channel.send(`更新成功:\n\`\`\`${stdout}\`\`\``);
+                            });
+                            break;
+
                         case 'close':
                         case 'restart':
                             DB.closeConnection();

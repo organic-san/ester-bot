@@ -24,7 +24,7 @@ DCAccess.on(Discord.Events.InteractionCreate,
         const buttonInfo = interaction.customId.split(",");
         console.log("按鈕指令觸發: " + buttonInfo[0] + ", id: " + interaction.customId + ", 伺服器: " + interaction.guild.name)
 
-        // 目前暫時只處理dice指令
+        // 處理 dice 指令
         if(buttonInfo[0] === 'dice') {
             if(!interaction.member.permissionsIn(interaction.channel)?.has(Discord.PermissionsBitField.Flags.SendMessages)) 
                 return interaction.reply({ content: "你無法在這個頻道使用指令!", ephemeral: true });
@@ -42,6 +42,23 @@ DCAccess.on(Discord.Events.InteractionCreate,
                 const options = buttonInfo.slice(2);
                 const result = Math.floor(Math.random() * options.length);
                 interaction.reply(`${interaction.user}\n${options.length}個選項: [${options.join(', ')}] => ${options[result]}`);
+            }
+        }
+
+        // 處理 wordle 指令
+        if(buttonInfo[0] === 'wordle') {
+            if(!interaction.member.permissionsIn(interaction.channel)?.has(Discord.PermissionsBitField.Flags.SendMessages)) 
+                return interaction.reply({ content: "你無法在這個頻道使用指令!", ephemeral: true });
+            
+            try {
+                const wordleCommand = require('../commands/wordle.js');
+                await wordleCommand.handleWordleButton(interaction, buttonInfo);
+            } catch (error) {
+                console.error('Wordle 按鈕處理錯誤:', error);
+                return interaction.reply({
+                    content: '❌ 處理按鈕時發生錯誤！',
+                    ephemeral: true
+                });
             }
         }
     });
