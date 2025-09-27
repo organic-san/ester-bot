@@ -148,25 +148,25 @@ module.exports = {
                     case 'leave': setType = 1; break;
                 }
                 if (message) {
-                    const userMatch = message.match(/<(U|u)(S|s)(E|e)(R|r)>/g);
+                    const userMatch = message.match(/<user>/gi);
                     if (!userMatch) return interaction.reply({
                         content: '請在訊息中加入一個<user>標誌符，這個字串在實際發送時將替換為加入的用戶名。',
                         ephemeral: true
                     });
                     if (userMatch.length > 1) return interaction.reply({
-                        content: '<user>標誌符至多請只加入一組。',
+                        content: '<user> 標誌符至多請只加入一組。',
                         ephemeral: true
                     });
 
-                    const serverMatch = message.match(/<(S|s)(E|e)(R|r)(V|v)(E|e)(R|r)>/g);
+                    const serverMatch = message.match(/<server>/gi);
                     if (serverMatch?.length > 1) return interaction.reply({
-                        content: '<server>標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器名稱。',
+                        content: '<server> 標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器名稱。',
                         ephemeral: true
                     });
 
-                    const memberCountMatch = message.match(/<(M|m)(E|e)(M|m)(B|b)(E|e)(R|r)_(C|c)(O|o)(U|u)(N|n)(T|t)>/g);
+                    const memberCountMatch = message.match(/<member_count>/gi);
                     if (memberCountMatch?.length > 1) return interaction.reply({
-                        content: '<member_count>標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器人數。',
+                        content: '<member_count> 標誌符至多請只加入一組，這個字串在實際發送時將替換為當下的伺服器人數。',
                         ephemeral: true
                     });
 

@@ -3,6 +3,7 @@ const Discord = require('discord.js');
 const GuildDataMap = require('../class/guildDataMap');
 const Record = require('../class/record');
 
+const { getOrCreateWebhook } = require('../class/webhookManager');
 const guildDataMap = new GuildDataMap();
 
 DCAccess.on(Discord.Events.MessageCreate,
@@ -51,32 +52,15 @@ DCAccess.on(Discord.Events.MessageCreate,
             i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
         words = words.join("").split(`<@${DCAccess.client.id}>`).join("");
 
-        const isThread = msg.channel.isThread();
-        const channel = isThread ? msg.channel.parent : msg.channel;
-        //if(channel.type === Discord.ChannelType.GuildForum) return;
-        const webhooks = await channel.fetchWebhooks();
-        const webhook = webhooks.find(webhook => webhook.owner.id === DCAccess.client.id);
-
-        const getWebhook = new Promise((resolve, reject) => {
-            if(!webhook) {
-                channel.createWebhook({
-                    name: msg.member.displayName,
-                    avatar: msg.author.displayAvatarURL({ extension: "png" })
-                }).then(webhook => resolve(webhook)).catch(reject);
-            } else {
-                webhook.edit({
-                    name: msg.member.displayName,
-                    avatar: msg.author.displayAvatarURL({ extension: "png" })
-                }).then(webhook => resolve(webhook)).catch(reject);
-            }
-        });
-
-        getWebhook.then(webhook => {
-            if(isThread)
+        try {
+            const webhook = await getOrCreateWebhook(msg.channel, msg.author, msg.member.displayName);
+            if (msg.channel.isThread())
                 webhook.send({ content: words, allowedMentions: { repliedUser: false }, threadId: msg.channel.id })
-            else 
-                webhook.send({ content: words, allowedMentions: { repliedUser: false }})
-        });
+            else
+                webhook.send({ content: words, allowedMentions: { repliedUser: false } });
+        } catch (err) {
+            console.error("Error in emojiTrans webhook handling:", err);
+        }
 
         if (msg.deletable) msg.delete().catch((err) => console.log(err));
         return;

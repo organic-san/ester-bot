@@ -134,6 +134,16 @@ module.exports = {
         return false;
     },
 
+    /**
+     * 將 getDay() 的回傳值轉為中文字符
+     * @param {number} day 
+     * @returns {string}
+     */
+    getDayString: (day) => {
+        const week = ["日", "一", "二", "三", "四", "五", "六"];
+        return week[day] ?? "";
+    },
+
     localISOTimeNow: () => {
         let tzoffset = (new Date()).getTimezoneOffset() * 60000;
         return (new Date(Date.now() - tzoffset)).toISOString().slice(0, 19);

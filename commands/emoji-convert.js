@@ -1,5 +1,6 @@
 
 const Discord = require('discord.js');
+const { getOrCreateWebhook } = require('../class/webhookManager');
 const GuildDataMap = require('../class/guildDataMap');
 
 module.exports = {
@@ -49,31 +50,15 @@ module.exports = {
             i % 2 ? words.push(isEmoji[(i - 1) / 2]) : words.push(notEmoji[i / 2]);
         words = words.join("").split("\\n").join("\n");
 
-        const isThread = interaction.channel.isThread();
-        const channel = isThread ? interaction.channel.parent : interaction.channel;
-        const webhooks = await channel.fetchWebhooks();
-        const webhook = webhooks.find(webhook => webhook.owner.id === interaction.client.user.id);
-
-        const getWebhook = new Promise((resolve, reject) => {
-            if(!webhook) {
-                channel.createWebhook({
-                    name: interaction.member.displayName,
-                    avatar: interaction.user.displayAvatarURL({ extension: "png" })
-                }).then(webhook => resolve(webhook)).catch(reject);
-            } else {
-                webhook.edit({
-                    name: interaction.member.displayName,
-                    avatar: interaction.user.displayAvatarURL({ extension: "png" })
-                }).then(webhook => resolve(webhook)).catch(reject);
-            }
-        });
-
-        getWebhook.then(webhook => {
-            if(isThread)
+        try {
+            const webhook = await getOrCreateWebhook(interaction.channel, interaction.user, interaction.member.displayName);
+            if (interaction.channel.isThread())
                 webhook.send({ content: words, allowedMentions: { repliedUser: false }, threadId: interaction.channel.id })
-            else 
-                webhook.send({ content: words, allowedMentions: { repliedUser: false }})
-        });
+            else
+                webhook.send({ content: words, allowedMentions: { repliedUser: false } });
+        } catch (err) {
+            console.error("Error in emoji-convert webhook handling:", err);
+        }
 
         /*
         if (!interaction.member.permissions.has(Discord.PermissionsBitField.Flags.ManageMessages)) return;

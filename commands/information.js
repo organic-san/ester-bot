@@ -3,6 +3,7 @@ const Discord = require('discord.js');
 const Record = require('../class/record');
 const guildDataMap = require('../class/guildDataMap');
 const GuildDataMap = require('../class/guildDataMap');
+const { getDayString } = require('../class/textModule');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -31,27 +32,10 @@ module.exports = {
     async execute(interaction) {
         if (interaction.options.getSubcommand() === 'bot') {
             const time = interaction.client.user.createdAt;
-            let char = "";
-            switch (time.getDay()) {
-                case 0: char = "日"; break;
-                case 1: char = "一"; break;
-                case 2: char = "二"; break;
-                case 3: char = "三"; break;
-                case 4: char = "四"; break;
-                case 5: char = "五"; break;
-                case 6: char = "六"; break;
-            }
+            const char = getDayString(time.getDay());
             const timejoin = interaction.guild.members.cache.get(interaction.client.user.id).joinedAt;
-            let week = '';
-            switch (timejoin.getDay()) {
-                case 0: week = "日"; break;
-                case 1: week = "一"; break;
-                case 2: week = "二"; break;
-                case 3: week = "三"; break;
-                case 4: week = "四"; break;
-                case 5: week = "五"; break;
-                case 6: week = "六"; break;
-            }
+            const week = getDayString(timejoin.getDay());
+
             const embed3 = new Discord.EmbedBuilder()
                 .setColor(process.env.EMBEDCOLOR)
                 .setTitle(`${interaction.client.user.username} 的資訊`)
@@ -79,16 +63,7 @@ module.exports = {
 
         } else if (interaction.options.getSubcommand() === 'guild') {
             const time = interaction.guild.createdAt;
-            let char = '';
-            switch (time.getDay()) {
-                case 0: char = "日"; break;
-                case 1: char = "一"; break;
-                case 2: char = "二"; break;
-                case 3: char = "三"; break;
-                case 4: char = "四"; break;
-                case 5: char = "五"; break;
-                case 6: char = "六"; break;
-            }
+            const char = getDayString(time.getDay());
             let verificationLevel = interaction.guild.verificationLevel;
             switch (verificationLevel) {
                 case Discord.GuildVerificationLevel.None: verificationLevel = '無'; break;
@@ -188,40 +163,11 @@ module.exports = {
             const member = await interaction.guild.members.fetch(user.id);
             if (!member) return interaction.reply({ content: "我沒辦法在這個伺服器中找到他。", ephemeral: true })
             const time = user.createdAt;
-            let char = '';
-            switch (time.getDay()) {
-                case 0: char = "日"; break;
-                case 1: char = "一"; break;
-                case 2: char = "二"; break;
-                case 3: char = "三"; break;
-                case 4: char = "四"; break;
-                case 5: char = "五"; break;
-                case 6: char = "六"; break;
-            }
+            const char = getDayString(time.getDay());
             const timejoin = member.joinedAt;
-            let week = '';
-            switch (timejoin.getDay()) {
-                case 0: week = "日"; break;
-                case 1: week = "一"; break;
-                case 2: week = "二"; break;
-                case 3: week = "三"; break;
-                case 4: week = "四"; break;
-                case 5: week = "五"; break;
-                case 6: week = "六"; break;
-            }
+            const week = getDayString(timejoin.getDay());
             const premium = member.premiumSince;
-            let day = '';
-            if (premium) {
-                switch (premium.getDay()) {
-                    case 0: day = "日"; break;
-                    case 1: day = "一"; break;
-                    case 2: day = "二"; break;
-                    case 3: day = "三"; break;
-                    case 4: day = "四"; break;
-                    case 5: day = "五"; break;
-                    case 6: day = "六"; break;
-                }
-            }
+            const day = premium ? getDayString(premium.getDay()) : '';
             const startday = premium ? `${premium.getFullYear()} ${premium.getMonth() + 1}/${premium.getDate()} (${day})` : "沒有加成本伺服器";
             let roles = '';
             let rolesC = 0;
