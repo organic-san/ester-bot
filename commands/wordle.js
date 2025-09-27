@@ -1,7 +1,7 @@
 const Discord = require("discord.js");
 const Record = require("../class/record");
 const words = require('../data/wordle/words.json');
-const answers = words;
+const answers = require('../data/wordle/answers.json');
 
 // 遊戲狀態儲存
 /**

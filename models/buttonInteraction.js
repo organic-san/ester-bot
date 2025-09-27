@@ -1,6 +1,7 @@
 const Discord = require('discord.js');
 
 const DCAccess = require('../class/discordAccess');
+const wordleCommand = require('../commands/wordle.js');
 
 DCAccess.on(Discord.Events.InteractionCreate,
     /**
@@ -51,7 +52,6 @@ DCAccess.on(Discord.Events.InteractionCreate,
                 return interaction.reply({ content: "你無法在這個頻道使用指令!", ephemeral: true });
             
             try {
-                const wordleCommand = require('../commands/wordle.js');
                 await wordleCommand.handleWordleButton(interaction, buttonInfo);
             } catch (error) {
                 console.error('Wordle 按鈕處理錯誤:', error);
