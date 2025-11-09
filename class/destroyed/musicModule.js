@@ -579,7 +579,7 @@ module.exports = {
         `\`${defprem}help <指令>\` - 召喚詳細的幫助清單，例如\`${defprem}help play\``)
         .addField('文字指令', `請使用\`${defpre}help\`查詢`)
         .addField('管理權限指令', `請使用\`${defprea}help\`查詢`)
-        .addField(`加入有機酸伺服器`,`如果有任何問題或需求，請加入此伺服器並聯絡organic_san_2#0500\nhttps://discord.gg/hveXGk5Qmz`)
+        .addField(`加入有機酸伺服器`,`如果有任何問題或需求，請加入此伺服器並聯絡organic_kaami\nhttps://discord.gg/hveXGk5Qmz`)
         return embed;
     },
     //#endregion
