@@ -101,7 +101,8 @@ module.exports = {
         // --- 遊戲主要部分 ---
 
         let player = offensive > 0 ? offensive : Math.floor(Math.random() * 2) + 1;
-        const kuro = player; // kuro 變數在你原本邏輯是用來判斷棋子顏色的
+        const sente = player;
+        const kuro = player;
         let step = 0;
         let board = new Gomoku();
         
@@ -112,11 +113,17 @@ module.exports = {
 
         const getGameInfoStr = () => 
             `**五子棋對戰**\n` +
-            `⚪ 先手: ${player === 1 ? user[0].username : user[1].username}\n` +
-            `⚫ 後手: ${player === 2 ? user[0].username : user[1].username}\n`;
+            `⚫ 先手: ${sente === 1 ? user[0] : user[1]} (${sente === 1 ? user[0].username : user[1].username})\n` +
+            `⚪ 後手: ${sente === 2 ? user[0] : user[1]} (${sente === 2 ? user[0].username : user[1].username})\n`;
+
+        const getGameInfoStrNoMention = () => 
+            `**五子棋對戰**\n` +
+            `⚫ 先手: ${sente === 1 ? user[0].username : user[1].username}\n` +
+            `⚪ 後手: ${sente === 2 ? user[0].username : user[1].username}\n`;
 
         const msgPlaying = "請輸入座標 (例如: H8, C6)";
         const msgWaiting = "等待對方思考中...";
+        const msgMain = "正在遊玩遊戲中...";
         const timelimit = 3;
 
         // 初始發送圖片
@@ -124,12 +131,12 @@ module.exports = {
         let nowPlayerStr = `目前輪到: ${player === 1 ? user[0] : user[1]}`;
 
         await message[0].edit({ 
-            content: `${getGameInfoStr()}\n${nowPlayerStr}\n${player === 1 ? msgPlaying : msgWaiting}`, 
+            content: `${getGameInfoStrNoMention()}\n${nowPlayerStr}\n${player === 1 ? msgPlaying : msgWaiting}`, 
             files: [attachment], 
             components: [] 
         });
         await message[1].edit({ 
-            content: `${getGameInfoStr()}\n${nowPlayerStr}\n${player === 2 ? msgPlaying : msgWaiting}`, 
+            content: `${getGameInfoStrNoMention()}\n${nowPlayerStr}\n${player === 2 ? msgPlaying : msgWaiting}`, 
             files: [attachment], 
             components: [] 
         });
@@ -139,7 +146,11 @@ module.exports = {
             message[1].channel.createMessageCollector({ time: (player === 2 ? timelimit : 999) * 60 * 1000 })
         ];
 
-        mainMsg.edit("正在遊玩遊戲中...");
+        mainMsg.edit({ 
+            content: `${getGameInfoStr()}\n${nowPlayerStr}\n${msgMain}`, 
+            files: [attachment], 
+            components: [] 
+        });
 
         collector.forEach(async (col, index) => {
             col.on("collect", async msg => {
@@ -164,7 +175,7 @@ module.exports = {
                 );
 
                 if (putPosJudge === 0) {
-                    return msg.reply({ content: '該位置已有棋子，請重選。', allowedMentions: { repliedUser: false } });
+                    return msg.reply({ content: '該位置已有棋子，請重新輸入。', allowedMentions: { repliedUser: false } });
                 }
 
                 // 產生新的棋盤圖片
@@ -173,7 +184,7 @@ module.exports = {
 
                 // 處理勝利條件
                 if (putPosJudge === 2) {
-                    const winStr = `🎉 恭喜 ${user[index]} 獲勝！`;
+                    const winStr = getGameInfoStr() + `\n🎉 恭喜 ${user[index]} 獲勝！`;
                     // 發送最終結果給雙方
                     await message[0].channel.send({ content: winStr, files: [newAttachment] });
                     await message[1].channel.send({ content: winStr, files: [newAttachment] });
@@ -185,7 +196,7 @@ module.exports = {
                     collector[1].stop('end');
                     return;
                 } else if (step >= 224) { // 平手
-                    const drawStr = "棋局下到盡頭，兩人無法分出勝負。";
+                    const drawStr = getGameInfoStr() + "\n棋局下到盡頭，兩人無法分出勝負。";
                     await message[0].channel.send({ content: drawStr, files: [newAttachment] });
                     await message[1].channel.send({ content: drawStr, files: [newAttachment] });
                     mainMsg.edit({ content: drawStr, files: [newAttachment] }).catch(() => { });
@@ -208,16 +219,16 @@ module.exports = {
                 
                 let kmsg = message[index];
                 message[(index + 1) % 2].edit({
-                    content: `${getGameInfoStr()}\n對方在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgPlaying}`,
+                    content: `${getGameInfoStrNoMention()}\n對方在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgPlaying}`,
                     files: [newAttachment]
                 });
                 message[index] = await user[index].send({
-                    content: `${getGameInfoStr()}\n你在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgWaiting}`,
+                    content: `${getGameInfoStrNoMention()}\n你在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgWaiting}`,
                     files: [newAttachment]
                 });
                 kmsg.delete();
                 mainMsg.edit({
-                    content: `${getGameInfoStr()}\n${user[index]}  (${user[index].tag}) 在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgPlaying}`,
+                    content: `${getGameInfoStr()}\n${user[index]} 在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgMain}`,
                     files: [newAttachment]
                 });
             });
