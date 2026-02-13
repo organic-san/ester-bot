@@ -8,6 +8,7 @@ const stmtInsert = db.prepare(
 );
 const stmtDelete = db.prepare(`DELETE FROM ${process.env.TIMERTABLE} WHERE id = ?`);
 const stmtSelectAll = db.prepare(`SELECT * FROM ${process.env.TIMERTABLE}`);
+const stmtSelectById = db.prepare(`SELECT * FROM ${process.env.TIMERTABLE} WHERE id = ?`);
 
 module.exports = {
     /**
@@ -31,6 +32,24 @@ module.exports = {
      */
     remove(id) {
         stmtDelete.run(id);
+    },
+
+    /**
+     * 根據 ID 取得單一計時器
+     * @param {string} id
+     * @returns {{id: string, channelId: string, userId: string, message: string|null, displayTime: string, endTimestamp: number}|null}
+     */
+    getById(id) {
+        const row = stmtSelectById.get(id);
+        if (!row) return null;
+        return {
+            id: row.id,
+            channelId: row.channel_id,
+            userId: row.user_id,
+            message: row.message,
+            displayTime: row.display_time,
+            endTimestamp: row.end_timestamp,
+        };
     },
 
     /**
