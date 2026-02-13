@@ -7,6 +7,8 @@ const DB = require('../class/database');
 const prefix = require('../JSONHome/prefix.json');
 
 const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
 const guildDataMap = new GuildDataMap();
 
@@ -176,6 +178,48 @@ DCAccess.on(Discord.Events.MessageCreate,
                         case 'clearbackup':
                             guildDataMap.clearBackup();
                             break;
+                        
+                        case 'bckcount':
+                            const backupPath = './data/backups';
+                            if (!fs.existsSync(backupPath)) {
+                                msg.channel.send("找不到備份資料夾。");
+                                break;
+                            }
+                            const files = fs.readdirSync(backupPath);
+                            let totalSize = 0;
+                            let fileCount = 0;
+                            let latestFile = null;
+
+                            files.forEach(file => {
+                                const filePath = path.join(backupPath, file);
+                                const stats = fs.statSync(filePath);
+                                if (stats.isFile()) {
+                                    fileCount++;
+                                    totalSize += stats.size;
+                                    if (!latestFile || stats.mtime > latestFile.mtime) {
+                                        latestFile = { name: file, size: stats.size, mtime: stats.mtime };
+                                    }
+                                }
+                            });
+
+                            const formatSize = (bytes) => {
+                                if (bytes === 0) return '0 B';
+                                const k = 1024;
+                                const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+                            };
+
+                            let resultMsg = `**備份統計資訊**\n` +
+                                `檔案數量: ${fileCount}\n` +
+                                `總計大小: ${formatSize(totalSize)}\n`;
+
+                            if (latestFile) {
+                                resultMsg += `最新備份: ${latestFile.name} (${formatSize(latestFile.size)})`;
+                            }
+
+                            msg.channel.send(resultMsg);
+                            break;
 
                         case 'pull':
                             exec('git pull', (error, stdout, stderr) => {
@@ -246,6 +290,22 @@ DCAccess.on(Discord.Events.MessageCreate,
                                 msg.channel.send(`更新成功:\n\`\`\`${stdout}\`\`\``);
                             });
                             break;
+                        
+                        // 列出所有指令的使用次數
+                        case 'iuse':
+                            const db = DB.getConnection();
+                            const interactionRecords = db.prepare(`SELECT ConfigKey as id, ConfigValue as count FROM ${process.env.RECORDTABLE} WHERE ConfigKey LIKE 'interaction_%'`).all();
+
+                            if (interactionRecords.length === 0) {
+                                msg.channel.send("目前沒有指令使用紀錄。");
+                            } else {
+                                let usageList = "**指令使用次數統計:**\n";
+                                interactionRecords.sort((a, b) => b.count - a.count).forEach(r => {
+                                    usageList += `\`${r.id.replace('interaction_', '')}\` - ${r.count} 次\n`;
+                                });
+                                msg.channel.send(usageList);
+                            }
+                            break;
 
                         case 'close':
                         case 'restart':
@@ -263,7 +323,12 @@ DCAccess.on(Discord.Events.MessageCreate,
                                 `\`addexp [exp]\` - add author exp\n` +
                                 `\`backup\` - backup database\n` +
                                 `\`clearbackup\` - remove backup over 7 days\n` +
+                                `\`bckcount\` - show backup count and size\n` +
                                 `\`pull\` - git pull\n` +
+                                `\`dbupdate\` - update database\n` +
+                                `\`cmdupdate\` - update guild commands\n` +
+                                `\`cmdupdateg\` - update global commands\n` +
+                                `\`iuse\` - show command usage\n` +
                                 `\`close\` - close the bot`
                             );
                             setTimeout(() => remindmessaged.delete(), 5 * 1000);
