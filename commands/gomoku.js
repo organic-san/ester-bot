@@ -68,6 +68,7 @@ module.exports = {
             { filter: msgfilter, componentType: Discord.ComponentType.Button, time: 5 * 60 * 1000 }
         ).catch(() => { });
         if (!p1btn) {
+            message[0].edit({ content: "你並未對邀請做出回覆，因此取消開始遊戲。", components: [] }).catch(() => { });
             return mainMsg.edit({ content: "由於太久沒有收到反映，因此取消向對方傳送邀請。", components: [] }).catch(() => { });
         }
 
@@ -93,7 +94,7 @@ module.exports = {
         if (!p2btn) {
             mainMsg.edit("對方並未對邀請做出回覆，因此取消開始遊戲。");
             message[0].edit("對方並未對邀請做出回覆，因此取消開始遊玩五子棋。");
-            return p2btn.update(`剛剛 ${user[0]} (${user[0].tag}) 向你發送了五子棋(/gomoku)的遊玩邀請，但你並未回覆。`);
+            return message[1].edit(`你並未對 ${user[0]} (${user[0].tag}) 的五子棋(/gomoku)遊玩邀請做出回覆，因此取消開始遊戲。`).catch(() => { });
         }
 
         await mainMsg.edit("對方同意遊玩邀請了! 即將開始遊戲...").catch(() => { });
