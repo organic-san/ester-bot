@@ -4,6 +4,7 @@ const DCAccess = require('./class/discordAccess');
 const textCommand = require('./class/textModule');
 const GuildDataMap = require('./class/guildDataMap');
 const Record = require('./class/record');
+const { restoreTimers } = require('./commands/timer');
 
 const fs = require('fs');
 require('dotenv').config();
@@ -38,6 +39,9 @@ client.once(Discord.Events.ClientReady, async () => {
 
         console.log(`設定成功: ${new Date()}`);
         DCAccess.log(`登入成功: ${Discord.time(new Date())}`);
+
+        // 恢復持久化的計時器
+        restoreTimers(client);
         if (client.user.id !== process.env.BOT_ID_ACIDTEST)
             client.channels.fetch(process.env.CHECK_CH_ID2).then(channel =>
                 channel.send(`登入成功: <t:${Math.floor(client.readyTimestamp / 1000)}:F>`)

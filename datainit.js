@@ -10,7 +10,7 @@ const db = new Database(process.env.DATABASE_URL);
 const { localISOTimeNow } = require("./class/textModule.js");
 
 // ====================================================================================================
-// server data table
+// table creation
 
 
 db.prepare(`
@@ -59,8 +59,20 @@ db.prepare(`
     )
 `).run();
 
+db.prepare(`
+    CREATE TABLE IF NOT EXISTS ${process.env.TIMERTABLE} (
+        id TEXT PRIMARY KEY,
+        channel_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        message TEXT,
+        display_time TEXT NOT NULL,
+        end_timestamp INTEGER NOT NULL
+    )
+`).run();
+
 // ====================================================================================================
 // Record table
+
 
 db.prepare(`
     CREATE TABLE IF NOT EXISTS ${process.env.RECORDTABLE} (
@@ -69,188 +81,46 @@ db.prepare(`
     )
 `).run();
 
-const recordInsert = db.prepare(`INSERT INTO ${process.env.RECORDTABLE} (ConfigKey, ConfigValue) VALUES (?, ?) ON CONFLICT(ConfigKey) DO NOTHING`);
-const dataPath = "./data/record.json";
+recordInsert.run('messageCount', 0);
+recordInsert.run('interactionCount', 0);
+recordInsert.run('autoReplyCount', 0);
 
-if (fs.existsSync(dataPath)) {
-    const recordData = fs.readFileSync(dataPath, 'utf8');
-    const recordList = JSON.parse(recordData);
-
-    recordInsert.run('messageCount', recordList.messageCount);
-    recordInsert.run('interactionCount', recordList.interactionCount);
-    recordInsert.run('autoReplyCount', recordList.commandCount ?? 0);
-
-    const recordListInteraction = recordList.interaction;
-    for (const key of Object.keys(recordListInteraction)) {
-        recordInsert.run(`interaction_${key}`, recordListInteraction[key]);
+const commandFiles = fs.readdirSync('./commands')?.filter(file => file.endsWith('.js'));
+if (commandFiles) {
+    for (const key of commandFiles) {
+        recordInsert.run(`interaction_${key}`, 0);
     }
-
-    recordInsert.run('user_join', recordList.user.join);
-    recordInsert.run('user_leave', recordList.user.leave);
-
-    recordInsert.run('bot_join', recordList.bot.join);
-    recordInsert.run('bot_leave', recordList.bot.leave);
-
-    recordInsert.run('maxiumYachtScore', recordList.maxiumYachtScore);
-    recordInsert.run('weeklyYachtScore', recordList.weeklyYachtScore);
-    recordInsert.run('weeklyYachtScoreWeek', recordList.weeklyYachtScoreWeek);
-
-    recordInsert.run('happyBeamCount', recordList.happyBeamCount);
-    recordInsert.run('emojiTransCount', 0);
-
-    recordInsert.run('lastSmallEarthquakeTime', Date.now());
-    recordInsert.run('lastHugeEarthquakeTime', Date.now());
-} else {
-
-    recordInsert.run('messageCount', 0);
-    recordInsert.run('interactionCount', 0);
-    recordInsert.run('autoReplyCount', 0);
-
-    const commandFiles = fs.readdirSync('./commands')?.filter(file => file.endsWith('.js'));
-    if (commandFiles) {
-        for (const key of commandFiles) {
-            recordInsert.run(`interaction_${key}`, 0);
-        }
-    }
-
-
-    recordInsert.run('user_join', 0);
-    recordInsert.run('user_leave', 0);
-
-    recordInsert.run('bot_join', 0);
-    recordInsert.run('bot_leave', 0);
-
-    recordInsert.run('maxiumYachtScore', 0);
-    recordInsert.run('weeklyYachtScore', 0);
-    recordInsert.run('weeklyYachtScoreWeek', 0);
-
-    recordInsert.run('happyBeamCount', 0);
-    recordInsert.run('emojiTransCount', 0);
-
-    recordInsert.run('lastSmallEarthquakeTime', Date.now());
-    recordInsert.run('lastHugeEarthquakeTime', Date.now());
 }
 
 
-// ====================================================================================================
-// each server data table
+recordInsert.run('user_join', 0);
+recordInsert.run('user_leave', 0);
 
-const filePath = 'data/guildInfo/guildlist.json';
-if (!fs.existsSync(filePath)) return;
+recordInsert.run('bot_join', 0);
+recordInsert.run('bot_leave', 0);
 
-const serverDataArray = [];
-const userDataArray = [];
-const reactionDataArray = [];
+recordInsert.run('maxiumYachtScore', 0);
+recordInsert.run('weeklyYachtScore', 0);
+recordInsert.run('weeklyYachtScoreWeek', 0);
 
-const insertServerData = db.prepare(`
-    INSERT INTO ${process.env.MAINTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING
-`);
-const serverDataTrans = db.transaction((list) => {
-    for (const server of list) {
-        insertServerData.run(
-            server.id,
-            server.joinedAt,
-            server.recordAt,
-            server.name,
-            server.joinMessage ? 1 : 0,
-            server.leaveMessage ? 1 : 0,
-            server.joinMessageContent,
-            server.leaveMessageContent,
-            server.joinChannel,
-            server.leaveChannel,
-            server.levels ? 1 : 0,
-            server.levelsReact,
-            server.levelsReactChannel,
-            server.emojiTrans ? 1 : 0,
-            server.earthquakeAnnounceChannel,
-            server.earthquakeAnnounceLevel
-        );
-    }
-});
+recordInsert.run('happyBeamCount', 0);
+recordInsert.run('emojiTransCount', 0);
 
-const insertUserData = db.prepare(`
-    INSERT INTO ${process.env.USERTABLE} VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT(id) DO NOTHING
-`);
-const userDataTrans = db.transaction((list) => {
-    for (const user of list) {
-        insertUserData.run(
-            user.id,
-            user.userId,
-            user.guildId,
-            user.tag,
-            user.DM,
-            user.exp,
-            user.chips,
-            user.msgs,
-            user.levels
-        );
-    }
-});
+recordInsert.run('lastSmallEarthquakeTime', Date.now());
+recordInsert.run('lastHugeEarthquakeTime', Date.now());
 
-const insertReactionData = db.prepare(`
-    INSERT INTO ${process.env.REACTIONTABLE} VALUES (?, ?, ?, ?) ON CONFLICT(id, guildId) DO NOTHING
-`);
-const reactionDataTrans = db.transaction((list) => {
-    for (const reaction of list) {
-        insertReactionData.run(
-            null,
-            reaction.guildId,
-            reaction.react,
-            reaction.reply
-        );
-    }
-});
+// Wordle 遊戲相關統計
+recordInsert.run('interaction_wordle', 0);           // 總遊戲次數
+recordInsert.run('wordle_game_end', 0);             // 結束次數
+recordInsert.run('wordle_game_win', 0);            // 勝利次數
+recordInsert.run('wordle_game_lose', 0);            // 失敗次數
 
-let guildList = fs.readFileSync(filePath, 'utf8');
-JSON.parse(guildList).forEach(e => {
-    const jsonData = fs.readFileSync('data/guildInfo/' + e + '.json', 'utf8');
-    const serverData = JSON.parse(jsonData);
-
-    serverDataArray.push({
-        id: serverData.id,
-        joinedAt: serverData.joinedAt,
-        recordAt: serverData.recordAt,
-        name: serverData.name,
-        joinMessage: serverData.joinMessage,
-        leaveMessage: serverData.leaveMessage,
-        joinMessageContent: serverData.joinMessageContent,
-        leaveMessageContent: serverData.leaveMessageContent,
-        joinChannel: serverData.joinChannel,
-        leaveChannel: serverData.leaveChannel,
-        levels: serverData.levels,
-        levelsReact: serverData.levelsReact,
-        levelsReactChannel: serverData.levelsReactChannel,
-        emojiTrans: serverData.emojiTrans,
-        earthquakeAnnounceChannel: serverData.earthquakeAnnounceChannel,
-        earthquakeAnnounceLevel: serverData.earthquakeAnnounceLevel
-    });
-
-    // Insert user data into the corresponding user table
-
-    for (const user of serverData.users) {
-        userDataArray.push({
-            id: `${serverData.id}_${user.id}`,
-            userId: user.id,
-            guildId: serverData.id,
-            tag: user.tag,
-            DM: user.DM ? 1 : 0,
-            exp: user.exp,
-            chips: user.chips,
-            msgs: user.msgs,
-            levels: user.levels
-        });
-    }
-    for (const reaction of serverData.reaction) {
-        reactionDataArray.push({
-            guildId: serverData.id,
-            react: reaction.react,
-            reply: reaction.reply
-        });
-    }
-});
-
-serverDataTrans(serverDataArray);
-userDataTrans(userDataArray);
-reactionDataTrans(reactionDataArray);
+// 按猜測次數分類的勝利統計
+recordInsert.run('wordle_win_1try', 0);              // 1次猜中
+recordInsert.run('wordle_win_2try', 0);              // 2次猜中
+recordInsert.run('wordle_win_3try', 0);              // 3次猜中
+recordInsert.run('wordle_win_4try', 0);              // 4次猜中
+recordInsert.run('wordle_win_5try', 0);              // 5次猜中
+recordInsert.run('wordle_win_6try', 0);              // 6次猜中
 
 db.close();
