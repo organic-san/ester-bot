@@ -377,9 +377,12 @@ module.exports = {
                         } else if (maxiumYachtScore === highest) {
                             winner += `\n⭐打平了目前的最高紀錄!`;
                         }
-                        if (weeklyYachtScore < highest || weeklyYachtScoreWeek !== week) {
-                            Record.set("weeklyYachtScore", highest);
+                        if(weeklyYachtScoreWeek !== week) {
+                            Record.reset("weeklyYachtScore", highest);
                             Record.set("weeklyYachtScoreWeek", week);
+                            winner += `\n🌟更新了本周的最高紀錄!`;
+                        } else if (weeklyYachtScore < highest) {
+                            Record.set("weeklyYachtScore", highest);
                             winner += `\n🌟更新了本周的最高紀錄!`;
                         } else if (weeklyYachtScore === highest) {
                             winner += `\n⭐打平了本周的最高紀錄!`;

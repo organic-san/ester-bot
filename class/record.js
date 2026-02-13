@@ -32,14 +32,31 @@ module.exports = {
     /**
      * 
      * @param {string} target
-     * @param {any} value
+     * @param {number} value
      */
     set(target, value) {
         const db = DB.getConnection();
         db.prepare(`
             UPDATE ${process.env.RECORDTABLE} 
             SET ConfigValue = ? 
-            WHERE ConfigKey = ? AND EXISTS (SELECT 1 FROM ${process.env.RECORDTABLE} WHERE ConfigKey = ?)
+            WHERE ConfigKey = ? 
+            AND EXISTS (SELECT 1 FROM ${process.env.RECORDTABLE} WHERE ConfigKey = ?)
+            AND configvalue < ?
+        `).run(value, target, target, value);
+    },
+
+    /**
+     * 
+     * @param {string} target
+     * @param {number} value 
+     */
+    reset(target, value) {
+        const db = DB.getConnection();
+        db.prepare(`
+            UPDATE ${process.env.RECORDTABLE} 
+            SET ConfigValue = ? 
+            WHERE ConfigKey = ? 
+            AND EXISTS (SELECT 1 FROM ${process.env.RECORDTABLE} WHERE ConfigKey = ?)
         `).run(value, target, target);
     }
 }
