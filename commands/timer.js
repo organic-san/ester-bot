@@ -110,7 +110,7 @@ async function handleDelete(interaction) {
     }
 
     if (timerData.userId !== interaction.user.id) {
-        return interaction.reply({ content: '你只能刪除自己設定的計時器。', ephemeral: true });
+        return interaction.reply({ content: '只能刪除自己設定的計時器。', ephemeral: true });
     }
 
     TimerDB.remove(id);
