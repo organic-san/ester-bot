@@ -39,6 +39,7 @@ module.exports = {
         if (user[1].id === user[0].id) return interaction.reply("無法向自己發送遊玩邀請。");
 
         const help = "五子棋 - 遊戲說明: \n先連成五顆一線的玩家獲勝。\n" +
+            "操作時間限制為每一步 " + timelimit + " 分鐘，逾時將結束遊戲。\n" +
             (offensive === 1 ? `${user[0]} 為先手。` : (offensive === 2 ? `${user[1]} 為先手。` : "先後手將隨機決定。"));
 
         const OKbutton = new Discord.ActionRowBuilder().addComponents([
@@ -552,9 +553,14 @@ async function executeAI(interaction, offensive) {
             )
     );
 
+    const timelimit = 5; // 分鐘
+
     let isErr = false;
     let dmMsg = await user.send({
-        content: '**五子棋機器人對戰**\n\n請選擇對手難度：',
+        content: '**五子棋機器人對戰**\n' + 
+        `五子棋 - 遊戲說明: \n先連成五顆一線的玩家獲勝。\n` +
+        `操作時間限制為每一步 ${timelimit} 分鐘，逾時將結束遊戲。\n` +
+        '\n請選擇對手難度：',
         components: [difficultySelect],
         fetchReply: true
     }).catch(() => { isErr = true; });
@@ -606,8 +612,6 @@ async function executeAI(interaction, offensive) {
 
     const engLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
     const coordStr = (r, c) => `${engLetters[r]}${c + 1}`;
-
-    const timelimit = 5; // 分鐘
 
     // 投降按鈕
     const surrenderButton = new Discord.ActionRowBuilder().addComponents(
