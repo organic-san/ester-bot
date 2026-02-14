@@ -553,7 +553,7 @@ async function executeAI(interaction, offensive) {
             )
     );
 
-    const timelimit = 5; // 分鐘
+    const timelimit = 20; // 分鐘
 
     let isErr = false;
     let dmMsg = await user.send({
