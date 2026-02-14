@@ -134,6 +134,15 @@ module.exports = {
         const msgMain = "正在遊玩遊戲中...";
         const timelimit = 3;
 
+        // 投降按鈕
+        const surrenderButton = new Discord.ActionRowBuilder().addComponents(
+            new Discord.ButtonBuilder()
+                .setCustomId('surrender_pvp')
+                .setLabel('投降')
+                .setStyle(Discord.ButtonStyle.Secondary)
+                .setEmoji('🏳️')
+        );
+
         // 初始發送圖片
         let attachment = getBoardAttachment();
         let nowPlayerStr = `目前輪到: ${player === 1 ? user[0] : user[1]}`;
@@ -141,18 +150,56 @@ module.exports = {
         await message[0].edit({ 
             content: `${getGameInfoStrNoMention()}\n${nowPlayerStr}\n${player === 1 ? msgPlaying : msgWaiting}`, 
             files: [attachment], 
-            components: [] 
+            components: [surrenderButton] 
         });
         await message[1].edit({ 
             content: `${getGameInfoStrNoMention()}\n${nowPlayerStr}\n${player === 2 ? msgPlaying : msgWaiting}`, 
             files: [attachment], 
-            components: [] 
+            components: [surrenderButton] 
         });
 
         let collector = [
             message[0].channel.createMessageCollector({ time: (player === 1 ? timelimit : 999) * 60 * 1000 }),
             message[1].channel.createMessageCollector({ time: (player === 2 ? timelimit : 999) * 60 * 1000 })
         ];
+
+        // 投降按鈕收集器
+        let buttonCollector = [
+            message[0].createMessageComponentCollector({
+                filter: (i) => i.customId === 'surrender_pvp' && i.user.id === user[0].id,
+                time: 999 * 60 * 1000
+            }),
+            message[1].createMessageComponentCollector({
+                filter: (i) => i.customId === 'surrender_pvp' && i.user.id === user[1].id,
+                time: 999 * 60 * 1000
+            })
+        ];
+
+        let gameOver = false;
+
+        // 處理投降按鈕
+        buttonCollector.forEach((btnCol, index) => {
+            btnCol.on('collect', async (interaction) => {
+                if (gameOver) return;
+                await interaction.deferUpdate();
+                
+                gameOver = true;
+                const opponentIndex = (index + 1) % 2;
+                const surrenderStr = getGameInfoStr() + `\n🏳️ ${user[index]} 投降了！\n🎉 恭喜 ${user[opponentIndex]} 獲勝！`;
+                
+                // 發送結果給雙方
+                await message[0].channel.send({ content: surrenderStr, files: [getBoardAttachment()] });
+                await message[1].channel.send({ content: surrenderStr, files: [getBoardAttachment()] });
+                mainMsg.edit({ content: surrenderStr, files: [getBoardAttachment()] }).catch(() => {});
+                
+                message[0].delete().catch(() => {});
+                message[1].delete().catch(() => {});
+                collector[0].stop('surrender');
+                collector[1].stop('surrender');
+                buttonCollector[0].stop();
+                buttonCollector[1].stop();
+            });
+        });
 
         mainMsg.edit({ 
             content: `${getGameInfoStr()}\n${nowPlayerStr}\n${msgMain}`, 
@@ -195,6 +242,7 @@ module.exports = {
 
                 // 處理勝利條件
                 if (putPosJudge === 2) {
+                    gameOver = true;
                     const winStr = getGameInfoStr() + `\n🎉 恭喜 ${user[index]} 獲勝！`;
                     // 發送最終結果給雙方
                     await message[0].channel.send({ content: winStr, files: [newAttachment] });
@@ -205,8 +253,11 @@ module.exports = {
                     message[1].delete();
                     collector[0].stop('end');
                     collector[1].stop('end');
+                    buttonCollector[0].stop();
+                    buttonCollector[1].stop();
                     return;
                 } else if (step >= 224) { // 平手
+                    gameOver = true;
                     const drawStr = getGameInfoStr() + "\n棋局下到盡頭，兩人無法分出勝負。";
                     await message[0].channel.send({ content: drawStr, files: [newAttachment] });
                     await message[1].channel.send({ content: drawStr, files: [newAttachment] });
@@ -216,6 +267,8 @@ module.exports = {
                     message[1].delete();
                     collector[0].stop('end');
                     collector[1].stop('end');
+                    buttonCollector[0].stop();
+                    buttonCollector[1].stop();
                     return;
                 }
 
@@ -229,15 +282,45 @@ module.exports = {
                 nowPlayerStr = `目前輪到: ${player === 1 ? user[0] : user[1]}`;
                 
                 let kmsg = message[index];
-                message[(index + 1) % 2].edit({
+                const opponentIndex = (index + 1) % 2;
+                
+                message[opponentIndex].edit({
                     content: `${getGameInfoStrNoMention()}\n對方在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgPlaying}`,
-                    files: [newAttachment]
+                    files: [newAttachment],
+                    components: [surrenderButton]
                 });
                 message[index] = await user[index].send({
                     content: `${getGameInfoStrNoMention()}\n你在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgWaiting}`,
-                    files: [newAttachment]
+                    files: [newAttachment],
+                    components: [surrenderButton]
                 });
                 kmsg.delete();
+                
+                // 更新投降按鈕收集器
+                buttonCollector[index].stop();
+                buttonCollector[index] = message[index].createMessageComponentCollector({
+                    filter: (i) => i.customId === 'surrender_pvp' && i.user.id === user[index].id,
+                    time: 999 * 60 * 1000
+                });
+                buttonCollector[index].on('collect', async (interaction) => {
+                    if (gameOver) return;
+                    await interaction.deferUpdate();
+                    
+                    gameOver = true;
+                    const opp = (index + 1) % 2;
+                    const surrenderStr = getGameInfoStr() + `\n🏳️ ${user[index]} 投降了！\n🎉 恭喜 ${user[opp]} 獲勝！`;
+                    
+                    await message[0].channel.send({ content: surrenderStr, files: [getBoardAttachment()] });
+                    await message[1].channel.send({ content: surrenderStr, files: [getBoardAttachment()] });
+                    mainMsg.edit({ content: surrenderStr, files: [getBoardAttachment()] }).catch(() => {});
+                    
+                    message[0].delete().catch(() => {});
+                    message[1].delete().catch(() => {});
+                    collector[0].stop('surrender');
+                    collector[1].stop('surrender');
+                    buttonCollector[0].stop();
+                    buttonCollector[1].stop();
+                });
                 mainMsg.edit({
                     content: `${getGameInfoStr()}\n${user[index]} 在 **${masu}** 下了棋子。\n${nowPlayerStr}\n${msgMain}`,
                     files: [newAttachment]
@@ -248,7 +331,7 @@ module.exports = {
         // 逾時處理
         collector.forEach(async (col, index) => {
             col.on('end', (collected, reason) => {
-                if (reason !== "messageDelete" && reason !== 'end') { // 也就是 time 到了
+                if (reason !== "messageDelete" && reason !== 'end' && reason !== 'surrender') { // 也就是 time 到了
                     message[index].channel.send({
                         content:
                             `由於你太久沒有回應，因此結束了這場遊戲。`,
@@ -264,6 +347,8 @@ module.exports = {
                             "遊戲因為操作逾時而結束。",
                     }).catch(() => { });
                     collector[(index + 1) % 2].stop('end');
+                    buttonCollector[0].stop();
+                    buttonCollector[1].stop();
                 }
             });
         });
@@ -713,7 +798,7 @@ async function executeAI(interaction, offensive) {
         setupButtonCollector();
 
         mainMsg.edit({
-            content: `${getInfoStr()}\n機器人 (${diffName}) 在 **${aiMasu}** 下了棋子。\n目前輪到: ${user}\n正在遊玩遊戲中...`,
+            content: `${getInfoStr()}\n機器人在 **${aiMasu}** 下了棋子。\n目前輪到: ${user}\n正在遊玩遊戲中...`,
             files: [getBoardAttachment()]
         }).catch(() => {});
     });
