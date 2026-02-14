@@ -4,12 +4,8 @@ const Discord = require('discord.js');
 module.exports = {
     data: new Discord.SlashCommandBuilder()
         .setName('gomoku')
-        .setDescription('進行一場五子棋遊戲 (圖片版)')
-        .addUserOption(opt => 
-            opt.setName('player')
-            .setDescription('要共同遊玩的玩家')
-            .setRequired(true)
-        ).addNumberOption(opt => 
+        .setDescription('進行一場五子棋遊戲 (支援玩家對戰與機器人對戰)')
+        .addNumberOption(opt => 
             opt.setName('offensive')
             .setDescription('選擇先手')
             .addChoices(
@@ -17,6 +13,10 @@ module.exports = {
                 { name: "先手", value: 1 }, 
                 { name: "後手", value: 2 }
             ).setRequired(true)
+        ).addUserOption(opt => 
+            opt.setName('player')
+            .setDescription('要共同遊玩的玩家 (不填則與機器人對戰)')
+            .setRequired(false)
         ),
     
     tag: "interaction",
@@ -25,8 +25,15 @@ module.exports = {
      * @param {Discord.CommandInteraction} interaction
      */
     async execute(interaction) {
-        const user = [interaction.user, interaction.options.getUser('player')];
+        const opponent = interaction.options.getUser('player');
         const offensive = interaction.options.getNumber('offensive');
+
+        // AI 對戰模式
+        if (!opponent) {
+            return executeAI(interaction, offensive);
+        }
+
+        const user = [interaction.user, opponent];
 
         if (user[1].bot) return interaction.reply("無法向機器人發送遊玩邀請。");
         if (user[1].id === user[0].id) return interaction.reply("無法向自己發送遊玩邀請。");
@@ -162,7 +169,10 @@ module.exports = {
 
                 // 檢查格式 (A-O + 1-15)
                 if (!msg.content.match(/^[A-Oa-o]([1-9]|1[0-5])$/)) {
-                    return msg.reply('格式錯誤。請輸入 "行+列"，例如: "H8" 或 "C12"。');
+                    return msg.reply({
+                        content: '格式錯誤。請輸入 "行+列"，例如: "H8" 或 "C12"。',
+                        allowedMentions: { repliedUser: false }
+                    });
                 }
 
                 // 重置計時器
@@ -413,5 +423,550 @@ class Gomoku {
         for (let i = 1; i < 5; i++) { if (Ud + i < 15 && Lr - i >= 0) { if (this.#game[Ud + i][Lr - i] === player) ren++; else i += 5; } }
         if (ren >= 5) return 2;
         else return 1;
+    }
+
+    getBoard() {
+        return this.#game.map(row => [...row]);
+    }
+}
+
+// ==================== AI 對戰模式 ====================
+
+async function executeAI(interaction, offensive) {
+    const user = interaction.user;
+
+    let mainMsg = await interaction.reply({
+        content: `正在準備五子棋機器人對戰！請檢查私訊選擇難度。`,
+        fetchReply: true
+    });
+
+    // 發送難度選擇選單到私訊
+    const difficultySelect = new Discord.ActionRowBuilder().addComponents(
+        new Discord.StringSelectMenuBuilder()
+            .setCustomId('difficulty_select')
+            .setPlaceholder('選擇機器人難度')
+            .addOptions(
+                {
+                    label: '中等',
+                    description: '中等程度評估',
+                    value: '1',
+                    emoji: '🟢'
+                },
+                {
+                    label: '困難',
+                    description: '能防守大部分威脅',
+                    value: '2',
+                    emoji: '🟡'
+                },
+                {
+                    label: '深度',
+                    description: '主動製造威脅',
+                    value: '3',
+                    emoji: '🔴'
+                }
+            )
+    );
+
+    let isErr = false;
+    let dmMsg = await user.send({
+        content: '**五子棋機器人對戰**\n\n請選擇對手難度：',
+        components: [difficultySelect],
+        fetchReply: true
+    }).catch(() => { isErr = true; });
+
+    if (isErr) {
+        return mainMsg.edit("已取消遊戲，因為我無法傳送訊息給你。").catch(() => {});
+    }
+
+    // 等待玩家選擇難度
+    const selectFilter = (i) => i.customId === 'difficulty_select' && i.user.id === user.id;
+    let selectInteraction;
+    try {
+        selectInteraction = await dmMsg.awaitMessageComponent({
+            filter: selectFilter,
+            componentType: Discord.ComponentType.StringSelect,
+            time: 3 * 60 * 1000
+        });
+    } catch {
+        dmMsg.edit({ content: '已取消遊戲，因為你太久沒有選擇難度。', components: [] }).catch(() => {});
+        return mainMsg.edit('已取消遊戲，因為太久沒有收到難度選擇。').catch(() => {});
+    }
+
+    await selectInteraction.deferUpdate();
+    const difficulty = parseInt(selectInteraction.values[0]);
+    const diffName = ['', '中等', '困難', '深度'][difficulty];
+    const ai = new GomokuAI(difficulty);
+
+    // 1 = 玩家先手, 2 = AI先手
+    const firstPlayer = offensive > 0 ? offensive : Math.floor(Math.random() * 2) + 1;
+    const userPiece = firstPlayer === 1 ? -1 : 1;
+    const aiPiece = -userPiece;
+
+    const board = new Gomoku();
+    let step = 0;
+
+    mainMsg.edit({
+        content: `已開始五子棋人機對戰！正在私訊中進行遊戲。`,
+    }).catch(() => {});
+
+    const getBoardAttachment = () => {
+        const buffer = board.renderBoard();
+        return new Discord.AttachmentBuilder(buffer, { name: 'gomoku-board.png' });
+    };
+
+    const getInfoStr = () =>
+        `**五子棋人機對戰**\n` +
+        `⚫ 先手: ${firstPlayer === 1 ? user.username : '機器人 (' + diffName + ')'}\n` +
+        `⚪ 後手: ${firstPlayer === 2 ? user.username : '機器人 (' + diffName + ')'}\n`;
+
+    const engLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'];
+    const coordStr = (r, c) => `${engLetters[r]}${c + 1}`;
+
+    const timelimit = 5; // 分鐘
+
+    // 投降按鈕
+    const surrenderButton = new Discord.ActionRowBuilder().addComponents(
+        new Discord.ButtonBuilder()
+            .setCustomId('surrender_game')
+            .setLabel('投降')
+            .setStyle(Discord.ButtonStyle.Secondary)
+            .setEmoji('🏳️')
+    );
+
+    // 按鈕互動收集器（用於投降）
+    let buttonCollector = null;
+
+    // AI 先手時，先讓 AI 走第一步
+    if (firstPlayer === 2) {
+        const aiMove = ai.getMove(board.getBoard(), aiPiece);
+        board.put(aiPiece, engLetters[aiMove.row], aiMove.col + 1);
+        step++;
+
+        const masu = coordStr(aiMove.row, aiMove.col);
+        const attachment = getBoardAttachment();
+        const oldDm = dmMsg;
+        dmMsg = await user.send({
+            content: `${getInfoStr()}\nAI 在 **${masu}** 下了棋子。\n目前輪到: 你\n請輸入座標 (例如: H8, C6)`,
+            files: [attachment],
+            components: [surrenderButton]
+        });
+        oldDm.delete().catch(() => {});
+
+        // 啟動按鈕收集器
+        buttonCollector = dmMsg.createMessageComponentCollector({
+            filter: (i) => i.customId === 'surrender_game' && i.user.id === user.id,
+            time: timelimit * 60 * 1000
+        });
+    } else {
+        const attachment = getBoardAttachment();
+        const oldDm = dmMsg;
+        dmMsg = await user.send({
+            content: `${getInfoStr()}\n目前輪到: 你\n請輸入座標 (例如: H8, C6)`,
+            files: [attachment],
+            components: [surrenderButton]
+        });
+        oldDm.delete().catch(() => {});
+
+        // 啟動按鈕收集器
+        buttonCollector = dmMsg.createMessageComponentCollector({
+            filter: (i) => i.customId === 'surrender_game' && i.user.id === user.id,
+            time: timelimit * 60 * 1000
+        });
+    }
+
+    mainMsg.edit({
+        content: `${getInfoStr()}\n目前輪到: ${user}\n正在遊玩遊戲中...`,
+        files: [getBoardAttachment()]
+    }).catch(() => {});
+
+    // 訊息收集器
+    const collector = dmMsg.channel.createMessageCollector({ time: timelimit * 60 * 1000 });
+    let gameOver = false;
+
+    // 投降按鈕處理函數
+    const setupButtonCollector = () => {
+        if (!buttonCollector) return;
+        buttonCollector.on('collect', async (interaction) => {
+            if (gameOver) return;
+            await interaction.deferUpdate();
+            
+            gameOver = true;
+            const att = getBoardAttachment();
+            await user.send({ 
+                content: `${getInfoStr()}\n🏳️ 你選擇了投降。\n💀 機器人 (${diffName}) 獲勝！`, 
+                files: [att],
+                components: []
+            });
+            mainMsg.edit({ 
+                content: `${getInfoStr()}\n🏳️ ${user} 投降了！\n💀 機器人 (${diffName}) 獲勝！`, 
+                files: [getBoardAttachment()] 
+            }).catch(() => {});
+            dmMsg.delete().catch(() => {});
+            collector.stop('surrender');
+            if (buttonCollector) buttonCollector.stop();
+        });
+    };
+
+    // 初始化按鈕監聽
+    setupButtonCollector();
+
+    collector.on('collect', async msg => {
+        if (msg.author.id !== user.id) return;
+        if (gameOver) return;
+
+        if (!msg.content.match(/^[A-Oa-o]([1-9]|1[0-5])$/)) {
+            return msg.reply({
+                content: '格式錯誤。請輸入 "行+列"，例如: "H8" 或 "C12"。',
+                allowedMentions: { repliedUser: false }
+            });
+        }
+
+        collector.resetTimer(timelimit * 60 * 1000);
+
+        const result = board.put(
+            userPiece,
+            msg.content.slice(0, 1).toUpperCase(),
+            parseInt(msg.content.slice(1))
+        );
+
+        if (result === 0) {
+            return msg.reply({ content: '該位置已有棋子，請重新輸入。', allowedMentions: { repliedUser: false } });
+        }
+
+        step++;
+        const userMasu = msg.content.toUpperCase();
+
+        // 玩家獲勝
+        if (result === 2) {
+            gameOver = true;
+            const att = getBoardAttachment();
+            await user.send({ content: `${getInfoStr()}\n你在 **${userMasu}** 下了棋子。\n🎉 恭喜獲勝！`, files: [att], components: [] });
+            mainMsg.edit({ content: `${getInfoStr()}\n🎉 ${user} 擊敗了 機器人 (${diffName})！`, files: [getBoardAttachment()] }).catch(() => {});
+            dmMsg.delete().catch(() => {});
+            collector.stop('end');
+            if (buttonCollector) buttonCollector.stop();
+            return;
+        }
+
+        // 平手
+        if (step >= 225) {
+            gameOver = true;
+            const att = getBoardAttachment();
+            await user.send({ content: `${getInfoStr()}\n棋局已滿，平手！`, files: [att], components: [] });
+            mainMsg.edit({ content: `${getInfoStr()}\n棋局已滿，平手！`, files: [getBoardAttachment()] }).catch(() => {});
+            dmMsg.delete().catch(() => {});
+            collector.stop('end');
+            if (buttonCollector) buttonCollector.stop();
+            return;
+        }
+
+        // AI 回合
+        const aiMove = ai.getMove(board.getBoard(), aiPiece);
+        const aiResult = board.put(aiPiece, engLetters[aiMove.row], aiMove.col + 1);
+        step++;
+        const aiMasu = coordStr(aiMove.row, aiMove.col);
+
+        // AI 獲勝
+        if (aiResult === 2) {
+            gameOver = true;
+            const att = getBoardAttachment();
+            await user.send({
+                content: `${getInfoStr()}\n你在 **${userMasu}** 下了棋子。\n我在 **${aiMasu}** 下了棋子。\n💀 機器人獲勝了！`,
+                files: [att],
+                components: []
+            });
+            mainMsg.edit({ content: `${getInfoStr()}\n💀 機器人擊敗了 ${user}！`, files: [getBoardAttachment()] }).catch(() => {});
+            dmMsg.delete().catch(() => {});
+            collector.stop('end');
+            if (buttonCollector) buttonCollector.stop();
+            return;
+        }
+
+        // AI 下完後平手
+        if (step >= 225) {
+            gameOver = true;
+            const att = getBoardAttachment();
+            await user.send({ content: `${getInfoStr()}\n棋局已滿，平手！`, files: [att], components: [] });
+            mainMsg.edit({ content: `${getInfoStr()}\n棋局已滿，平手！`, files: [getBoardAttachment()] }).catch(() => {});
+            dmMsg.delete().catch(() => {});
+            collector.stop('end');
+            if (buttonCollector) buttonCollector.stop();
+            return;
+        }
+
+        // 遊戲繼續
+        const newAtt = getBoardAttachment();
+        const oldDm = dmMsg;
+        dmMsg = await user.send({
+            content: `${getInfoStr()}\n你在 **${userMasu}** 下了棋子。我在 **${aiMasu}** 下了棋子。\n目前輪到: 你\n請輸入座標 (例如: H8, C6)`,
+            files: [newAtt],
+            components: [surrenderButton]
+        });
+        oldDm.delete().catch(() => {});
+
+        // 更新按鈕收集器
+        if (buttonCollector) buttonCollector.stop();
+        buttonCollector = dmMsg.createMessageComponentCollector({
+            filter: (i) => i.customId === 'surrender_game' && i.user.id === user.id,
+            time: timelimit * 60 * 1000
+        });
+        setupButtonCollector();
+
+        mainMsg.edit({
+            content: `${getInfoStr()}\n機器人 (${diffName}) 在 **${aiMasu}** 下了棋子。\n目前輪到: ${user}\n正在遊玩遊戲中...`,
+            files: [getBoardAttachment()]
+        }).catch(() => {});
+    });
+
+    collector.on('end', (collected, reason) => {
+        if (reason !== 'end' && reason !== 'messageDelete' && reason !== 'surrender') {
+            user.send('由於你太久沒有回應，因此結束了這場人機對戰遊戲。').catch(() => {});
+            mainMsg.edit('遊戲因為操作逾時而結束。').catch(() => {});
+        }
+        if (buttonCollector) buttonCollector.stop();
+    });
+}
+
+// ==================== 五子棋 AI ====================
+
+class GomokuAI {
+    #difficulty;
+
+    constructor(difficulty) {
+        this.#difficulty = difficulty;
+    }
+
+    /**
+     * 取得 AI 的下一步
+     * @param {number[][]} boardState 15x15 棋盤狀態
+     * @param {number} aiPiece AI 的棋子 (-1 黑 / 1 白)
+     * @returns {{row: number, col: number}}
+     */
+    getMove(boardState, aiPiece) {
+        const candidates = this.#getCandidates(boardState);
+        if (candidates.length === 0) return { row: 7, col: 7 };
+
+        switch (this.#difficulty) {
+            case 1: return this.#easyMove(boardState, candidates, aiPiece);
+            case 2: return this.#normalMove(boardState, candidates, aiPiece);
+            case 3: return this.#hardMove(boardState, candidates, aiPiece);
+            default: return this.#normalMove(boardState, candidates, aiPiece);
+        }
+    }
+
+    // 取得所有可落子的候選位置 (已有棋子周圍2格內的空格)
+    #getCandidates(board) {
+        const candidates = [];
+        const visited = new Set();
+        let hasPiece = false;
+
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                if (board[r][c] !== 0) {
+                    hasPiece = true;
+                    for (let dr = -2; dr <= 2; dr++) {
+                        for (let dc = -2; dc <= 2; dc++) {
+                            const nr = r + dr, nc = c + dc;
+                            if (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && board[nr][nc] === 0) {
+                                const key = nr * 15 + nc;
+                                if (!visited.has(key)) {
+                                    visited.add(key);
+                                    candidates.push({ row: nr, col: nc });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        return hasPiece ? candidates : [{ row: 7, col: 7 }];
+    }
+
+    /**
+     * 分析某位置在某方向上的連線模式
+     * @param {number[][]} board 
+     * @param {number} row 
+     * @param {number} col 
+     * @param {number} dr 方向 row 分量
+     * @param {number} dc 方向 col 分量
+     * @param {number} player 
+     * @returns {{count: number, openEnds: number}}
+     */
+    #analyzeLine(board, row, col, dr, dc, player) {
+        let count = 1;
+        let openEnds = 0;
+
+        // 正方向
+        let r = row + dr, c = col + dc;
+        while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) {
+            count++;
+            r += dr;
+            c += dc;
+        }
+        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) openEnds++;
+
+        // 反方向
+        r = row - dr;
+        c = col - dc;
+        while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) {
+            count++;
+            r -= dr;
+            c -= dc;
+        }
+        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) openEnds++;
+
+        return { count, openEnds };
+    }
+
+    // 根據連線數與開放端數計算分數
+    #patternScore(count, openEnds) {
+        if (count >= 5) return 100000;
+        if (openEnds === 0) return 0;
+
+        if (count === 4) return openEnds === 2 ? 20000 : 5000;
+        if (count === 3) return openEnds === 2 ? 3000 : 500;
+        if (count === 2) return openEnds === 2 ? 300 : 50;
+        if (count === 1) return openEnds === 2 ? 20 : 5;
+        return 0;
+    }
+
+    // 評估在 (row, col) 落子對 player 的價值
+    #evaluatePosition(board, row, col, player) {
+        const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        let totalScore = 0;
+        let threats = 0;
+
+        for (const [dr, dc] of directions) {
+            const { count, openEnds } = this.#analyzeLine(board, row, col, dr, dc, player);
+            const score = this.#patternScore(count, openEnds);
+            totalScore += score;
+            // 統計重大威脅數 (活三以上、半活四以上)
+            if ((count >= 3 && openEnds === 2) || (count >= 4 && openEnds >= 1)) {
+                threats++;
+            }
+        }
+
+        // 雙重威脅加分 (活三+活三、活三+半活四 等)
+        if (threats >= 2) totalScore += 25000;
+
+        return totalScore;
+    }
+
+    #easyMove(board, candidates, aiPiece) {
+        const opPiece = -aiPiece;
+
+        // 必勝手直接下
+        for (const { row, col } of candidates) {
+            if (this.#evaluatePosition(board, row, col, aiPiece) >= 100000) {
+                return { row, col };
+            }
+        }
+
+        let scored = candidates.map(({ row, col }) => ({
+            row, col,
+            score: this.#evaluatePosition(board, row, col, aiPiece) * 1 +
+                   this.#evaluatePosition(board, row, col, opPiece) * 0.6 +
+                   Math.random() * 1200
+        }));
+
+        scored.sort((a, b) => b.score - a.score);
+        return { row: scored[0].row, col: scored[0].col };
+    }
+
+    #normalMove(board, candidates, aiPiece) {
+        const opPiece = -aiPiece;
+
+        let scored = candidates.map(({ row, col }) => ({
+            row, col,
+            attack: this.#evaluatePosition(board, row, col, aiPiece),
+            defense: this.#evaluatePosition(board, row, col, opPiece)
+        }));
+
+        // 必勝手
+        const winMove = scored.find(m => m.attack >= 100000);
+        if (winMove) return { row: winMove.row, col: winMove.col };
+
+        // 擋住對手必勝
+        const blockMove = scored.find(m => m.defense >= 100000);
+        if (blockMove) return { row: blockMove.row, col: blockMove.col };
+
+        scored.forEach(m => m.score = m.attack * 1.1 + m.defense + Math.random() * 50);
+        scored.sort((a, b) => b.score - a.score);
+        return { row: scored[0].row, col: scored[0].col };
+    }
+    
+    #hardMove(board, candidates, aiPiece) {
+        const opPiece = -aiPiece;
+
+        let scored = candidates.map(({ row, col }) => ({
+            row, col,
+            attack: this.#evaluatePosition(board, row, col, aiPiece),
+            defense: this.#evaluatePosition(board, row, col, opPiece)
+        }));
+
+        // 必勝手
+        const winMove = scored.find(m => m.attack >= 100000);
+        if (winMove) return { row: winMove.row, col: winMove.col };
+
+        // 擋住對手必勝
+        const mustBlock = scored.filter(m => m.defense >= 100000);
+        if (mustBlock.length > 0) {
+            mustBlock.sort((a, b) => b.attack - a.attack);
+            return { row: mustBlock[0].row, col: mustBlock[0].col };
+        }
+
+        // 雙重威脅
+        const doubleThreat = scored.find(m => m.attack >= 25000);
+        if (doubleThreat) return { row: doubleThreat.row, col: doubleThreat.col };
+
+        // 擋住對手雙重威脅
+        const blockDouble = scored.find(m => m.defense >= 25000);
+        if (blockDouble) return { row: blockDouble.row, col: blockDouble.col };
+
+        // 活四
+        const openFour = scored.find(m => m.attack >= 20000);
+        if (openFour) return { row: openFour.row, col: openFour.col };
+
+        // 擋住對手活四
+        const blockOpenFour = scored.find(m => m.defense >= 20000);
+        if (blockOpenFour) return { row: blockOpenFour.row, col: blockOpenFour.col };
+
+        // 對前12名候選手進行模擬
+        scored.forEach(m => m.prelim = m.attack * 1.2 + m.defense);
+        scored.sort((a, b) => b.prelim - a.prelim);
+        const topCandidates = scored.slice(0, 12);
+
+        let bestScore = -Infinity;
+        let bestMove = topCandidates[0];
+
+        for (const move of topCandidates) {
+            // 暫時放棋
+            board[move.row][move.col] = aiPiece;
+
+            // 取得對手的候選並找出對手最佳回應
+            const opCands = this.#getCandidates(board);
+            let opBestScore = 0;
+
+            for (const opC of opCands) {
+                const opAtk = this.#evaluatePosition(board, opC.row, opC.col, opPiece);
+                const opDef = this.#evaluatePosition(board, opC.row, opC.col, aiPiece);
+                const opScore = opAtk * 1.1 + opDef;
+                if (opScore > opBestScore) opBestScore = opScore;
+            }
+
+            // 復原棋盤
+            board[move.row][move.col] = 0;
+
+            // 綜合評分
+            const finalScore = move.attack * 1.3 + move.defense - opBestScore * 0.5;
+
+            if (finalScore > bestScore) {
+                bestScore = finalScore;
+                bestMove = move;
+            }
+        }
+
+        return { row: bestMove.row, col: bestMove.col };
     }
 }
