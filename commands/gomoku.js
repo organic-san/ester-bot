@@ -593,12 +593,12 @@ async function executeAI(interaction, offensive) {
             gameOver = true;
             const att = getBoardAttachment();
             await user.send({ 
-                content: `${getInfoStr()}\n🏳️ 你選擇了投降。\n💀 機器人 (${diffName}) 獲勝！`, 
+                content: `${getInfoStr()}\n🏳️ 你選擇了投降。\n🍃 機器人 (${diffName}) 獲勝！`, 
                 files: [att],
                 components: []
             });
             mainMsg.edit({ 
-                content: `${getInfoStr()}\n🏳️ ${user} 投降了！\n💀 機器人 (${diffName}) 獲勝！`, 
+                content: `${getInfoStr()}\n🏳️ ${user} 投降了！\n🍃 機器人 (${diffName}) 獲勝！`, 
                 files: [getBoardAttachment()] 
             }).catch(() => {});
             dmMsg.delete().catch(() => {});
@@ -671,11 +671,11 @@ async function executeAI(interaction, offensive) {
             gameOver = true;
             const att = getBoardAttachment();
             await user.send({
-                content: `${getInfoStr()}\n你在 **${userMasu}** 下了棋子。\n我在 **${aiMasu}** 下了棋子。\n💀 機器人獲勝了！`,
+                content: `${getInfoStr()}\n你在 **${userMasu}** 下了棋子。\n我在 **${aiMasu}** 下了棋子。\n🍃 機器人獲勝了！`,
                 files: [att],
                 components: []
             });
-            mainMsg.edit({ content: `${getInfoStr()}\n💀 機器人擊敗了 ${user}！`, files: [getBoardAttachment()] }).catch(() => {});
+            mainMsg.edit({ content: `${getInfoStr()}\n🍃 機器人擊敗了 ${user}！`, files: [getBoardAttachment()] }).catch(() => {});
             dmMsg.delete().catch(() => {});
             collector.stop('end');
             if (buttonCollector) buttonCollector.stop();
