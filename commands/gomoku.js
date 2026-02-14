@@ -1048,7 +1048,7 @@ class GomokuAI {
             board[move.row][move.col] = 0;
 
             // 綜合評分
-            const finalScore = move.attack * 1.3 + move.defense - opBestScore * 0.5;
+            const finalScore = move.attack * 1.3 + move.defense - opBestScore * 0.5 + Math.random() * 1;
 
             if (finalScore > bestScore) {
                 bestScore = finalScore;
