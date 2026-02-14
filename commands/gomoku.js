@@ -816,7 +816,7 @@ async function executeAI(interaction, offensive) {
     });
 }
 
-// ==================== 五子棋 AI ====================
+// === 機器人 ===
 
 class GomokuAI {
     #difficulty;
@@ -826,7 +826,7 @@ class GomokuAI {
     }
 
     /**
-     * 取得 AI 的下一步
+     * AI 的下一步
      * @param {number[][]} boardState 15x15 棋盤狀態
      * @param {number} aiPiece AI 的棋子 (-1 黑 / 1 白)
      * @returns {{row: number, col: number}}
@@ -843,7 +843,7 @@ class GomokuAI {
         }
     }
 
-    // 取得所有可落子的候選位置 (已有棋子周圍2格內的空格)
+    // 取得所有候選位置
     #getCandidates(board) {
         const candidates = [];
         const visited = new Set();
@@ -880,11 +880,12 @@ class GomokuAI {
      * @param {number} dr 方向 row 分量
      * @param {number} dc 方向 col 分量
      * @param {number} player 
-     * @returns {{count: number, openEnds: number}}
+     * @returns {{count: number, openEnds: number, space: number}}
      */
     #analyzeLine(board, row, col, dr, dc, player) {
         let count = 1;
         let openEnds = 0;
+        let depthPos = 0, depthNeg = 0; // 各端空格深度
 
         // 正方向
         let r = row + dr, c = col + dc;
@@ -893,7 +894,14 @@ class GomokuAI {
             r += dr;
             c += dc;
         }
-        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) openEnds++;
+        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) {
+            openEnds++;
+            // 計算正方向空格深度 (連續空格數，遇到非空或邊界停止)
+            let tr = r, tc = c;
+            while (tr >= 0 && tr < 15 && tc >= 0 && tc < 15 && board[tr][tc] === 0) {
+                depthPos++; tr += dr; tc += dc;
+            }
+        }
 
         // 反方向
         r = row - dr;
@@ -903,20 +911,42 @@ class GomokuAI {
             r -= dr;
             c -= dc;
         }
-        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) openEnds++;
+        if (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === 0) {
+            openEnds++;
+            let tr = r, tc = c;
+            while (tr >= 0 && tr < 15 && tc >= 0 && tc < 15 && board[tr][tc] === 0) {
+                depthNeg++; tr -= dr; tc -= dc;
+            }
+        }
 
-        return { count, openEnds };
+        // 計算可用空間
+        const opponent = -player;
+        let space = 1;
+        let sr = row + dr, sc = col + dc;
+        while (sr >= 0 && sr < 15 && sc >= 0 && sc < 15 && board[sr][sc] !== opponent) {
+            space++; sr += dr; sc += dc;
+        }
+        sr = row - dr; sc = col - dc;
+        while (sr >= 0 && sr < 15 && sc >= 0 && sc < 15 && board[sr][sc] !== opponent) {
+            space++; sr -= dr; sc -= dc;
+        }
+        if (count <= 3 && openEnds === 2 && depthPos <= 1 && depthNeg <= 1) {
+            openEnds = 1;
+        }
+
+        return { count, openEnds, space };
     }
 
-    // 根據連線數與開放端數計算分數
-    #patternScore(count, openEnds) {
+    // 計算分數
+    #patternScore(count, openEnds, space = 99) {
         if (count >= 5) return 100000;
         if (openEnds === 0) return 0;
+        if (space < 5) return 0; // 無法形成五連
 
         if (count === 4) return openEnds === 2 ? 20000 : 5000;
-        if (count === 3) return openEnds === 2 ? 3000 : 500;
-        if (count === 2) return openEnds === 2 ? 300 : 50;
-        if (count === 1) return openEnds === 2 ? 20 : 5;
+        if (count === 3) return openEnds === 2 ? 3000 : 200; 
+        if (count === 2) return openEnds === 2 ? 300 : 30;   
+        if (count === 1) return openEnds === 2 ? 20 : 3;
         return 0;
     }
 
@@ -927,16 +957,16 @@ class GomokuAI {
         let threats = 0;
 
         for (const [dr, dc] of directions) {
-            const { count, openEnds } = this.#analyzeLine(board, row, col, dr, dc, player);
-            const score = this.#patternScore(count, openEnds);
+            const { count, openEnds, space } = this.#analyzeLine(board, row, col, dr, dc, player);
+            const score = this.#patternScore(count, openEnds, space);
             totalScore += score;
-            // 統計重大威脅數 (活三以上、半活四以上)
-            if ((count >= 3 && openEnds === 2) || (count >= 4 && openEnds >= 1)) {
+            // 重大威脅
+            if (space >= 5 && ((count >= 3 && openEnds === 2) || (count >= 4 && openEnds >= 1))) {
                 threats++;
             }
         }
 
-        // 雙重威脅加分 (活三+活三、活三+半活四 等)
+        // 雙重威脅
         if (threats >= 2) totalScore += 25000;
 
         return totalScore;
@@ -945,7 +975,7 @@ class GomokuAI {
     #easyMove(board, candidates, aiPiece) {
         const opPiece = -aiPiece;
 
-        // 必勝手直接下
+        // 必勝
         for (const { row, col } of candidates) {
             if (this.#evaluatePosition(board, row, col, aiPiece) >= 100000) {
                 return { row, col };
@@ -972,7 +1002,7 @@ class GomokuAI {
             defense: this.#evaluatePosition(board, row, col, opPiece)
         }));
 
-        // 必勝手
+        // 必勝
         const winMove = scored.find(m => m.attack >= 100000);
         if (winMove) return { row: winMove.row, col: winMove.col };
 
@@ -994,7 +1024,7 @@ class GomokuAI {
             defense: this.#evaluatePosition(board, row, col, opPiece)
         }));
 
-        // 必勝手
+        // 必勝
         const winMove = scored.find(m => m.attack >= 100000);
         if (winMove) return { row: winMove.row, col: winMove.col };
 
@@ -1021,34 +1051,39 @@ class GomokuAI {
         const blockOpenFour = scored.find(m => m.defense >= 20000);
         if (blockOpenFour) return { row: blockOpenFour.row, col: blockOpenFour.col };
 
-        // 對前12名候選手進行模擬
-        scored.forEach(m => m.prelim = m.attack * 1.2 + m.defense);
+        // 擋住對手活三
+        const bestDefThree = scored.reduce((best, m) =>
+            m.defense >= 3000 && (!best || m.defense > best.defense) ? m : best, null);
+        if (bestDefThree) {
+            const blocks = scored.filter(m => m.defense >= 3000);
+            blocks.sort((a, b) => (b.defense + b.attack * 0.5) - (a.defense + a.attack * 0.5));
+            return { row: blocks[0].row, col: blocks[0].col };
+        }
+        
+        // 深度推演
+        scored.forEach(m => m.prelim = m.attack + m.defense * 1.1);
         scored.sort((a, b) => b.prelim - a.prelim);
-        const topCandidates = scored.slice(0, 12);
+        const topCandidates = scored.slice(0, 15);
 
         let bestScore = -Infinity;
         let bestMove = topCandidates[0];
 
         for (const move of topCandidates) {
-            // 暫時放棋
+            // 模擬落子
             board[move.row][move.col] = aiPiece;
 
-            // 取得對手的候選並找出對手最佳回應
-            const opCands = this.#getCandidates(board);
-            let opBestScore = 0;
-
-            for (const opC of opCands) {
-                const opAtk = this.#evaluatePosition(board, opC.row, opC.col, opPiece);
-                const opDef = this.#evaluatePosition(board, opC.row, opC.col, aiPiece);
-                const opScore = opAtk * 1.1 + opDef;
-                if (opScore > opBestScore) opBestScore = opScore;
+            // 快速檢查此步是否直接獲勝
+            if (this.#checkWinAt(board, move.row, move.col)) {
+                board[move.row][move.col] = 0;
+                return { row: move.row, col: move.col };
             }
-
-            // 復原棋盤
+            
+            const score = this.#minimax(board, 2, false, aiPiece, -Infinity, Infinity);
             board[move.row][move.col] = 0;
 
-            // 綜合評分
-            const finalScore = move.attack * 1.3 + move.defense - opBestScore * 0.5 + Math.random() * 1;
+            // 位置分數
+            const centerBonus = (7 - Math.abs(move.row - 7)) + (7 - Math.abs(move.col - 7));
+            const finalScore = score + centerBonus * 3;
 
             if (finalScore > bestScore) {
                 bestScore = finalScore;
@@ -1057,5 +1092,186 @@ class GomokuAI {
         }
 
         return { row: bestMove.row, col: bestMove.col };
+    }
+
+    /**
+     * Minimax 搜尋
+     * @param {number[][]} board 棋盤狀態
+     * @param {number} depth 剩餘搜尋深度
+     * @param {boolean} isMaximizing 是否為 AI 的回合 (最大化)
+     * @param {number} aiPiece AI 棋子
+     * @param {number} alpha Alpha 值
+     * @param {number} beta Beta 值
+     * @returns {number} 評估分數
+     */
+    #minimax(board, depth, isMaximizing, aiPiece, alpha, beta) {
+        if (depth === 0) {
+            return this.#evaluateBoard(board, aiPiece);
+        }
+
+        const piece = isMaximizing ? aiPiece : -aiPiece;
+        const opPiece = -piece;
+        const candidates = this.#getCandidates(board);
+        if (candidates.length === 0) return this.#evaluateBoard(board, aiPiece);
+
+        // 評分候補
+        let scored = candidates.map(({ row, col }) => ({
+            row, col,
+            score: this.#evaluatePosition(board, row, col, piece) +
+                   this.#evaluatePosition(board, row, col, opPiece) * 0.9
+        }));
+        scored.sort((a, b) => b.score - a.score);
+
+        // 剪枝
+        const maxBranch = depth >= 2 ? 10 : 8;
+        const limited = scored.slice(0, maxBranch);
+
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            for (const { row, col } of limited) {
+                board[row][col] = aiPiece;
+
+                // 快速勝利偵測
+                if (this.#checkWinAt(board, row, col)) {
+                    board[row][col] = 0;
+                    return 500000 + depth * 10000; // 越早獲勝分數越高
+                }
+
+                const evalScore = this.#minimax(board, depth - 1, false, aiPiece, alpha, beta);
+                board[row][col] = 0;
+
+                maxEval = Math.max(maxEval, evalScore);
+                alpha = Math.max(alpha, evalScore);
+                if (beta <= alpha) break; // Beta 剪枝
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (const { row, col } of limited) {
+                board[row][col] = -aiPiece;
+
+                // 快速勝利偵測
+                if (this.#checkWinAt(board, row, col)) {
+                    board[row][col] = 0;
+                    return -500000 - depth * 10000; // 越早被打敗分數越低
+                }
+
+                const evalScore = this.#minimax(board, depth - 1, true, aiPiece, alpha, beta);
+                board[row][col] = 0;
+
+                minEval = Math.min(minEval, evalScore);
+                beta = Math.min(beta, evalScore);
+                if (beta <= alpha) break; // Alpha 剪枝
+            }
+            return minEval;
+        }
+    }
+
+    /**
+     * 快速檢測指定位置是否形成五連
+     * @param {number[][]} board 棋盤狀態
+     * @param {number} row 行
+     * @param {number} col 列
+     * @returns {boolean} 是否連成五子
+     */
+    #checkWinAt(board, row, col) {
+        const player = board[row][col];
+        if (player === 0) return false;
+        const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        for (const [dr, dc] of directions) {
+            let count = 1;
+            let r = row + dr, c = col + dc;
+            while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) { count++; r += dr; c += dc; }
+            r = row - dr; c = col - dc;
+            while (r >= 0 && r < 15 && c >= 0 && c < 15 && board[r][c] === player) { count++; r -= dr; c -= dc; }
+            if (count >= 5) return true;
+        }
+        return false;
+    }
+
+    /**
+     * 全局棋盤靜態評估
+     * @param {number[][]} board 棋盤狀態
+     * @param {number} aiPiece AI 棋子
+     * @returns {number} 評估分數 (正數有利AI，負數有利對手)
+     */
+    #evaluateBoard(board, aiPiece) {
+        let score = 0;
+        const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+        const counted = new Set();
+
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                const player = board[r][c];
+                if (player === 0) continue;
+                const opponent = -player;
+
+                for (let di = 0; di < directions.length; di++) {
+                    const [dr, dc] = directions[di];
+
+                    // 連續序列的起始位置
+                    let sr = r, sc = c;
+                    while (sr - dr >= 0 && sr - dr < 15 && sc - dc >= 0 && sc - dc < 15
+                        && board[sr - dr][sc - dc] === player) {
+                        sr -= dr; sc -= dc;
+                    }
+
+                    // 去重
+                    const key = sr * 900 + sc * 60 + di;
+                    if (counted.has(key)) continue;
+                    counted.add(key);
+
+                    // 計算連續棋子數量
+                    let count = 0;
+                    let er = sr, ec = sc;
+                    while (er >= 0 && er < 15 && ec >= 0 && ec < 15 && board[er][ec] === player) {
+                        count++; er += dr; ec += dc;
+                    }
+
+                    // 開放端數及空格深度
+                    let openEnds = 0;
+                    let depthStart = 0, depthEnd = 0;
+                    const br = sr - dr, bc = sc - dc;
+                    if (br >= 0 && br < 15 && bc >= 0 && bc < 15 && board[br][bc] === 0) {
+                        openEnds++;
+                        let tr2 = br, tc2 = bc;
+                        while (tr2 >= 0 && tr2 < 15 && tc2 >= 0 && tc2 < 15 && board[tr2][tc2] === 0) {
+                            depthStart++; tr2 -= dr; tc2 -= dc;
+                        }
+                    }
+                    if (er >= 0 && er < 15 && ec >= 0 && ec < 15 && board[er][ec] === 0) {
+                        openEnds++;
+                        let tr2 = er, tc2 = ec;
+                        while (tr2 >= 0 && tr2 < 15 && tc2 >= 0 && tc2 < 15 && board[tr2][tc2] === 0) {
+                            depthEnd++; tr2 += dr; tc2 += dc;
+                        }
+                    }
+                    if (count <= 3 && openEnds === 2 && depthStart <= 1 && depthEnd <= 1) {
+                        openEnds = 1;
+                    }
+
+                    // 計算可用空間
+                    let space = count;
+                    let tr = br, tc = bc;
+                    while (tr >= 0 && tr < 15 && tc >= 0 && tc < 15 && board[tr][tc] !== opponent) {
+                        space++; tr -= dr; tc -= dc;
+                    }
+                    tr = er; tc = ec;
+                    while (tr >= 0 && tr < 15 && tc >= 0 && tc < 15 && board[tr][tc] !== opponent) {
+                        space++; tr += dr; tc += dc;
+                    }
+
+                    // 分數
+                    const pscore = this.#patternScore(count, openEnds, space);
+                    if (player === aiPiece) {
+                        score += pscore;
+                    } else {
+                        score -= pscore * 1.15;
+                    }
+                }
+            }
+        }
+
+        return score;
     }
 }
