@@ -930,9 +930,6 @@ class GomokuAI {
         while (sr >= 0 && sr < 15 && sc >= 0 && sc < 15 && board[sr][sc] !== opponent) {
             space++; sr -= dr; sc -= dc;
         }
-        if (count <= 3 && openEnds === 2 && depthPos <= 1 && depthNeg <= 1) {
-            openEnds = 1;
-        }
 
         return { count, openEnds, space };
     }
@@ -1236,9 +1233,6 @@ class GomokuAI {
                         while (tr2 >= 0 && tr2 < 15 && tc2 >= 0 && tc2 < 15 && board[tr2][tc2] === 0) {
                             depthEnd++; tr2 += dr; tc2 += dc;
                         }
-                    }
-                    if (count <= 3 && openEnds === 2 && depthStart <= 1 && depthEnd <= 1) {
-                        openEnds = 1;
                     }
 
                     // 計算可用空間
