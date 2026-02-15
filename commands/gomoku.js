@@ -1050,15 +1050,6 @@ class GomokuAI {
         // 擋住對手活四
         const blockOpenFour = scored.find(m => m.defense >= 20000);
         if (blockOpenFour) return { row: blockOpenFour.row, col: blockOpenFour.col };
-
-        // 擋住對手活三
-        const bestDefThree = scored.reduce((best, m) =>
-            m.defense >= 3000 && (!best || m.defense > best.defense) ? m : best, null);
-        if (bestDefThree) {
-            const blocks = scored.filter(m => m.defense >= 3000);
-            blocks.sort((a, b) => (b.defense + b.attack * 0.5) - (a.defense + a.attack * 0.5));
-            return { row: blocks[0].row, col: blocks[0].col };
-        }
         
         // 深度推演
         scored.forEach(m => m.prelim = m.attack + m.defense * 1.1);
