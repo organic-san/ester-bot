@@ -1266,7 +1266,7 @@ class GomokuAI {
                     if (player === aiPiece) {
                         score += pscore;
                     } else {
-                        pscore >= 2500 ? score -= pscore * 1.2 : score -= pscore * 0.9;
+                        score -= pscore * 1.15;
                     }
                 }
             }
