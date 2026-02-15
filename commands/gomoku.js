@@ -33,6 +33,7 @@ module.exports = {
             return executeAI(interaction, offensive);
         }
 
+        const timelimit = 3;
         const user = [interaction.user, opponent];
 
         if (user[1].bot) return interaction.reply("無法向機器人發送遊玩邀請。");
@@ -133,7 +134,6 @@ module.exports = {
         const msgPlaying = "請輸入座標 (例如: H8, C6)";
         const msgWaiting = "等待對方思考中...";
         const msgMain = "正在遊玩遊戲中...";
-        const timelimit = 3;
 
         // 投降按鈕
         const surrenderButton = new Discord.ActionRowBuilder().addComponents(
