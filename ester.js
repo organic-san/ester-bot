@@ -186,6 +186,7 @@ client.on(Discord.Events.GuildDelete, guild => {
 //#endregion
 
 process.on('unhandledRejection', error => {
+    if(`${error}`.includes("ConnectTimeoutError")) return;
     console.error('Unhandled promise rejection:', error);
     const errmsg = textCommand.createErrorLog(error);
     DCAccess.log(`<@${process.env.OWNER1ID}>，發生不可控制的錯誤: ` + error, errmsg);
