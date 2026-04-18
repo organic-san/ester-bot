@@ -1,9 +1,9 @@
 const Discord = require('discord.js');
-
 const DCAccess = require('./class/discordAccess');
 const textCommand = require('./class/textModule');
 const GuildDataMap = require('./class/guildDataMap');
 const Record = require('./class/record');
+const DB = require('./class/database');
 const { restoreTimers } = require('./commands/timer');
 
 const fs = require('fs');
@@ -13,6 +13,9 @@ const client = DCAccess.login();
 
 // 所有資料的中樞
 let guildDataMap = new GuildDataMap();
+
+// 儲存所有 interval ID，用於關機時清理
+const intervals = [];
 
 const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 
@@ -34,7 +37,11 @@ client.once(Discord.Events.ClientReady, async () => {
         // 啟動大部分功能
         const subsys = fs.readdirSync('./models').filter(file => file.endsWith('.js'));
         for (const file of subsys) {
-            require(`./models/${file}`);
+            const mod = require(`./models/${file}`);
+            // 收集子系統匯出的 interval，用於關機清理
+            if (mod && mod.earthquakeInterval) {
+                intervals.push(mod.earthquakeInterval);
+            }
         }
 
         console.log(`設定成功: ${new Date()}`);
@@ -75,20 +82,21 @@ client.once(Discord.Events.ClientReady, async () => {
             );
         };
         announcement(process.env.DAILYINFOCH_ID);
-        setInterval(() => {
+        intervals.push(setInterval(() => {
             announcement(process.env.DAILYINFOCH_ID);
-        }, 24 * 60 * 60 * 1000);
+        }, 24 * 60 * 60 * 1000));
     }
 
-    client.channels.cache.get(process.env.LIFETIME_CH_ID).send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
-    setInterval(() => {
-        client.channels.cache.get(process.env.LIFETIME_CH_ID).send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
-    }, 5 * 60 * 1000);
+    client.channels.cache.get(process.env.LIFETIME_CH_ID)?.send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
+    intervals.push(setInterval(() => {
+        const ch = client.channels.cache.get(process.env.LIFETIME_CH_ID);
+        if (ch) ch.send(`活動觸發: ${client.user.tag} 於 ${Discord.time(new Date(), 'F')} 仍在線上`);
+    }, 5 * 60 * 1000));
 
     // 每日備份
-    setInterval(() => {
+    intervals.push(setInterval(() => {
         guildDataMap.backup();
-    }, 24 * 60 * 60 * 1000);
+    }, 24 * 60 * 60 * 1000));
 });
 //#endregion
 
@@ -186,8 +194,21 @@ client.on(Discord.Events.GuildDelete, guild => {
 //#endregion
 
 process.on('unhandledRejection', error => {
-    if(`${error}`.includes("ConnectTimeoutError")) return;
+    // if(`${error}`.includes("ConnectTimeoutError")) return;
     console.error('Unhandled promise rejection:', error);
     const errmsg = textCommand.createErrorLog(error);
     DCAccess.log(`<@${process.env.OWNER1ID}>，發生不可控制的錯誤: ` + error, errmsg);
 });
+
+// close
+const shotdown = (signal) => {
+    console.log(`signal: ${signal} 關閉系統`);
+    intervals.forEach(id => clearInterval(id));
+    guildDataMap.cleanup();
+    try { DB.closeConnection(); } catch (e) { }
+    DCAccess.destroy();
+    process.exit(0);
+};
+
+process.on('SIGTERM', () => shotdown('SIGTERM'));
+process.on('SIGINT', () => shotdown('SIGINT'));

@@ -1,13 +1,28 @@
 const Discord = require("discord.js");
 const Record = require("../class/record");
-const words = require('../data/wordle/words.json');
-const answers = require('../data/wordle/answers.json');
+
+// Lazy load: 字典檔在第一次使用時才載入
+let words = null;
+let answers = null;
+
+function loadWordLists() {
+    if (!words) {
+        words = require('../data/wordle/words.json');
+        answers = require('../data/wordle/answers.json');
+    }
+}
 
 // 遊戲狀態儲存
 /**
  * @type {Map<string, WordleGame>}
  */
 const gameData = new Map();
+/**
+ * @type {Map<string, NodeJS.Timeout>}
+ */
+const gameTimers = new Map();
+
+const GAME_TIMEOUT = 24 * 60 * 60 * 1000; // 24 小時自動過期
 
 // 表情符號定義
 const EMOJI = {
@@ -60,6 +75,7 @@ module.exports = {
     async execute(interaction) {
         const subcommand = interaction.options.getSubcommand();
         const userId = interaction.user.id;
+        loadWordLists();
 
         if (subcommand === 'rules') {
             const rulesEmbed = createRulesEmbed();
@@ -399,9 +415,22 @@ class WordleGame {
  * @param {string} userId 用戶ID
  */
 function startNewGame(userId) {
+    // 清除舊遊戲的計時器
+    if (gameTimers.has(userId)) {
+        clearTimeout(gameTimers.get(userId));
+        gameTimers.delete(userId);
+    }
+
     const answer = answers[Math.floor(Math.random() * answers.length)];
     const game = new WordleGame(userId, answer);
     gameData.set(userId, game);
+
+    // 設定自動過期
+    const timer = setTimeout(() => {
+        gameData.delete(userId);
+        gameTimers.delete(userId);
+    }, GAME_TIMEOUT);
+    gameTimers.set(userId, timer);
     
     console.log(`Wordle 遊戲開始 - 用戶: ${userId}, 答案: ${answer}`);
 }
@@ -413,6 +442,17 @@ function startNewGame(userId) {
 function handleGameEnd(game) {
     console.log(`Wordle 遊戲結束 - 用戶: ${game.userId}, 結果: ${game.won ? '勝利' : '失敗'}, 答案: ${game.answer}, 猜測次數: ${game.guesses.length}`);
     
+    // 清除原本的過期計時器
+    if (gameTimers.has(game.userId)) {
+        clearTimeout(gameTimers.get(game.userId));
+    }
+    // 遊戲結束後 5 分鐘再清除
+    const cleanupTimer = setTimeout(() => {
+        gameData.delete(game.userId);
+        gameTimers.delete(game.userId);
+    }, 5 * 60 * 1000);
+    gameTimers.set(game.userId, cleanupTimer);
+
     // 更新統計數據
     try {
         Record.increase('wordle_game_end');
@@ -652,6 +692,10 @@ async function handleWordleButton(interaction, buttonInfo) {
             );
 
         gameData.delete(userId);
+        if (gameTimers.has(userId)) {
+            clearTimeout(gameTimers.get(userId));
+            gameTimers.delete(userId);
+        }
 
         return interaction.update({
             embeds: [embed],

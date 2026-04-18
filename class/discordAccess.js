@@ -30,6 +30,14 @@ module.exports = {
                 Discord.GatewayIntentBits.DirectMessages,
                 Discord.GatewayIntentBits.GuildMessageReactions
             ],
+            makeCache: Discord.Options.cacheWithLimits({
+                MessageManager: 50,
+                GuildMemberManager: 200,
+            }),
+            sweepers: {
+                messages: { interval: 300, lifetime: 600 },
+                users: { interval: 3600, filter: () => user => !user.bot },
+            }
         };
         client = new Discord.Client(options);
         client.login(process.env.DCKEY_TOKEN);
@@ -123,15 +131,21 @@ module.exports = {
         if (!client) throw new Error("DiscordAcccess.log Error: client not set.");
         if(!msg) return;
         console.log(msg);
-        if(attr) {
-            let atc = new Discord.AttachmentBuilder(Buffer.from(attr), { name: 'error.txt' });
-            client.channels.cache.get(process.env.CHECK_CH_ID).send({
-                content: msg,
-                files: [atc]
-            });
+        try {
+            const channel = client.channels.cache.get(process.env.CHECK_CH_ID);
+            if (!channel) return;
+            if(attr) {
+                let atc = new Discord.AttachmentBuilder(Buffer.from(attr), { name: 'error.txt' });
+                channel.send({
+                    content: msg,
+                    files: [atc]
+                });
+            }
+            else
+                channel.send(msg);
+        } catch (error) {
+            console.log(error);
         }
-        else
-            client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
     },
 
     /**
@@ -143,13 +157,19 @@ module.exports = {
         if (!client) throw new Error("DiscordAcccess.log Error: client not set.");
         if(!msg) return false;
         console.log(msg);
+        const channel = client.channels.cache.get(process.env.CHECK_CH_ID);
+        if (!channel) return false;
         if(attr) {
-            await client.channels.cache.get(process.env.CHECK_CH_ID).send({
+            await channel.send({
                 content: msg,
                 files: [attr]
             });
         }
-        else await client.channels.cache.get(process.env.CHECK_CH_ID).send(msg);
+        else await channel.send(msg);
         return true;
+    },
+
+    destroy() {
+        if (client) client.destroy();
     },
 }

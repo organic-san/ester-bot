@@ -1,5 +1,5 @@
 const Discord = require('discord.js');
-const fetch = require('node-fetch');
+// const fetch = require('fetch');
 
 const DCAccess = require('../class/discordAccess');
 const Record = require('../class/record');
@@ -75,7 +75,7 @@ const announcement = async (msgList, level) => {
 }
 
 // 反覆偵測地震
-setInterval(async () => {
+const earthquakeInterval = setInterval(async () => {
     console.log("偵測地震: " + new Date());
     let { msgList } = await earthquake(`https://opendata.cwa.gov.tw/api/v1/rest/datastore/E-A0016-001?Authorization=${process.env.CWBKEY}` +
         `&format=JSON&AreaName=&StationName=A` +
@@ -86,4 +86,6 @@ setInterval(async () => {
         `&format=JSON&AreaName=&StationName=A` +
         `&timeFrom=${textCommand.localISOTime(Record.get("lastHugeEarthquakeTime")) || "2023-08-01T00:00:00"}`);
     announcement(msgList2, huge);
-}, 30 * 1000);
+}, 10 * 1000);
+
+module.exports = { earthquakeInterval };

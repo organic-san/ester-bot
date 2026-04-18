@@ -5,15 +5,21 @@ const DCAccess = require('./discordAccess.js');
 const fs = require('fs');
 require('dotenv').config();
 
+const GUILD_CACHE_TTL = 24 * 60 * 60 * 1000; // 24hr
+const GUILD_CACHE_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1hr
+
 module.exports = class GuildDataMap {
     /**
-     * @type Map<string, GuildData>
+     * @type Map<string, { guild: GuildData, lastAccess: number }>
      * @private
      */
     static #GuildList = new Map();
+    static #cleanupTimer = null;
 
     constructor() {
-
+        if (!GuildDataMap.#cleanupTimer) {
+            GuildDataMap.#cleanupTimer = setInterval(() => GuildDataMap.#cleanupGuildCache(), GUILD_CACHE_CLEANUP_INTERVAL);
+        }
     }
 
     /**
@@ -22,14 +28,31 @@ module.exports = class GuildDataMap {
      * @returns {GuildData | undefined}
      */
     get(guildId) {
-        if (GuildDataMap.#GuildList.has(guildId)) return GuildDataMap.#GuildList.get(guildId);
+        const cached = GuildDataMap.#GuildList.get(guildId);
+        if (cached) {
+            cached.lastAccess = Date.now();
+            return cached.guild;
+        }
 
         // 確認伺服器存在
         const guild = DCAccess.getGuild(guildId);
         if (!guild) return undefined;
 
-        GuildDataMap.#GuildList.set(guildId, new GuildData(guildId));
-        return GuildDataMap.#GuildList.get(guildId);
+        const guildData = new GuildData(guildId);
+        GuildDataMap.#GuildList.set(guildId, { guild: guildData, lastAccess: Date.now() });
+        return guildData;
+    }
+
+    /**
+     * 清理過期的 guild cache
+     */
+    static #cleanupGuildCache() {
+        const now = Date.now();
+        for (const [guildId, entry] of GuildDataMap.#GuildList) {
+            if (now - entry.lastAccess > GUILD_CACHE_TTL) {
+                GuildDataMap.#GuildList.delete(guildId);
+            }
+        }
     }
 
     /**
@@ -90,9 +113,20 @@ module.exports = class GuildDataMap {
      * @param {string} guildId 
      */
     remove(guildId) {
-        const guild = GuildDataMap.#GuildList.get(guildId);
-        if (!guild) return;
-        guild.delete();
-        GuildDataMap.#GuildList.delete(guild.id);
+        const cached = GuildDataMap.#GuildList.get(guildId);
+        if (!cached) return;
+        cached.guild.delete();
+        GuildDataMap.#GuildList.delete(guildId);
+    }
+
+    /**
+     * 清理所有快取並停止清理計時器（用於關機）
+     */
+    cleanup() {
+        if (GuildDataMap.#cleanupTimer) {
+            clearInterval(GuildDataMap.#cleanupTimer);
+            GuildDataMap.#cleanupTimer = null;
+        }
+        GuildDataMap.#GuildList.clear();
     }
 }

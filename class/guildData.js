@@ -10,12 +10,18 @@ require('dotenv').config();
 
 const db = DB.getConnection();
 
+const USER_CACHE_TTL = 60 * 60 * 1000; // 1hr
+const USER_CACHE_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10min
+const UPDATE_THROTTLE = 5 * 60 * 1000; // update() 節流: 每 5 分鐘最多寫入一次
+
 module.exports = class GuildData {
     #guildId;
     /**
-     * @type Map<string, User>
+     * @type Map<string, { user: User, lastAccess: number }>
      */
     #userList = new Map();
+    #userCleanupTimer = null;
+    #lastUpdateTime = 0;
 
     /**
      * 
@@ -25,6 +31,9 @@ module.exports = class GuildData {
         if (!id) throw new Error("GuildData Constructor Error: id must be provided.");
         this.#guildId = id;
         const { count } = db.prepare(`SELECT COUNT(*) as count FROM ${process.env.MAINTABLE} WHERE id = ?`).get(id);
+
+        // 啟動定期清理 user cache
+        this.#userCleanupTimer = setInterval(() => this.#cleanupUserCache(), USER_CACHE_CLEANUP_INTERVAL);
 
         if (count != 0) return;
 
@@ -54,7 +63,7 @@ module.exports = class GuildData {
             id: id,
             joinedAt: localISOTimeNow(),
             recordAt: localISOTimeNow(),
-            name: guild.name,
+            name: guild?.name ?? "",
             joinMsg: 0,
             leaveMsg: 0,
             joinMsgContent: "",
@@ -69,7 +78,7 @@ module.exports = class GuildData {
             eqAnnsLv: 0
         });
 
-        DCAccess.log(`資料庫新增: 新伺服器: **${guild.name}** (${id})`);
+        DCAccess.log(`資料庫新增: 新伺服器: **${guild?.name ?? ""}** (${id})`);
     }
 
     // 固有資訊
@@ -384,26 +393,53 @@ module.exports = class GuildData {
      * @returns {Promise<User>}
      */
     async getUser(userId) {
-        if (this.#userList.has(userId)) return this.#userList.get(userId);
+        const cached = this.#userList.get(userId);
+        if (cached) {
+            cached.lastAccess = Date.now();
+            return cached.user;
+        }
 
         const user = await DCAccess.getUser(userId);
         if (!user) return undefined;
 
-        this.#userList.set(userId, new User(userId, this.#guildId, user.tag));
-        return this.#userList.get(userId);
+        const userObj = new User(userId, this.#guildId, user.tag);
+        this.#userList.set(userId, { user: userObj, lastAccess: Date.now() });
+        return userObj;
     }
 
     /**
-     * 更新伺服器資訊
-     * @param {string} name - 伺服器名稱
+     * 清理過期的 user cache
+     */
+    #cleanupUserCache() {
+        const now = Date.now();
+        for (const [userId, entry] of this.#userList) {
+            if (now - entry.lastAccess > USER_CACHE_TTL) {
+                this.#userList.delete(userId);
+            }
+        }
+    }
+
+    /**
+     * 更新伺服器資訊（節流: 每 5 分鐘最多寫入一次）
      */
     update() {
-        const name = DCAccess.getGuild(this.#guildId).name;
+        const now = Date.now();
+        if (now - this.#lastUpdateTime < UPDATE_THROTTLE) return;
+        this.#lastUpdateTime = now;
+
+        const guild = DCAccess.getGuild(this.#guildId);
+        if (!guild) return;
         db.prepare(`UPDATE ${process.env.MAINTABLE} SET name = ?, recordAt = ? WHERE id = ?`)
-            .run(name, localISOTimeNow(), this.#guildId);
+            .run(guild.name, localISOTimeNow(), this.#guildId);
     }
 
     delete() {
+        if (this.#userCleanupTimer) {
+            clearInterval(this.#userCleanupTimer);
+            this.#userCleanupTimer = null;
+        }
+        this.#userList.clear();
+
         const { count, name } = db.prepare(`SELECT COUNT(*) as count, name FROM ${process.env.MAINTABLE} WHERE id = ?`).get(this.#guildId);
         if (count === 0) return;
 

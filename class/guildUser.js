@@ -59,7 +59,7 @@ module.exports = class User {
             levels: 0
         });
         const guild = DCAccess.getGuild(this.#guildId);
-        DCAccess.log(`資料庫新增: 新用戶: **${userTag}** (${userId}) 在伺服器 **${guild.name}** (${guild.id})`);
+        DCAccess.log(`資料庫新增: 新用戶: **${userTag}** (${userId}) 在伺服器 **${guild?.name ?? this.#guildId}** (${this.#guildId})`);
     }
 
     get id() {
