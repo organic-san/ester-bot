@@ -420,6 +420,8 @@ function startNewGame(userId) {
         clearTimeout(gameTimers.get(userId));
         gameTimers.delete(userId);
     }
+    
+    loadWordLists();
 
     const answer = answers[Math.floor(Math.random() * answers.length)];
     const game = new WordleGame(userId, answer);

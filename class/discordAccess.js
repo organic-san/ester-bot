@@ -85,11 +85,12 @@ module.exports = {
      */
     permissionsCheck(channel, permissions) {
         if (!client) throw new Error("DiscordAcccess.permissionsCheck Error: client not set.");
-        return channel.permissionsFor(client.user).has(permissions);
+        const p = channel.permissionsFor(client.user);
+        if (!p) return false;
+        return p.has(permissions);
     },
 
     /**
-     * 
      * @param {string} channelId 
      * @returns {Discord.Channel | undefined}
      */
