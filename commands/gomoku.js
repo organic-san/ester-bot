@@ -546,7 +546,7 @@ async function executeAI(interaction, offensive) {
                 },
                 {
                     label: '深度',
-                    description: '主動製造威脅',
+                    description: '形狀辨識 + VCF 致勝搜尋，幾乎無懈可擊',
                     value: '3',
                     emoji: '🔴'
                 }
@@ -1012,144 +1012,393 @@ class GomokuAI {
         return { row: scored[0].row, col: scored[0].col };
     }
     
+    // ============ 深度模式 (極強) ============
+    //
+    // 形狀分類常數 (數字越大越強):
+    //   0 = 無威脅
+    //   1 = 眠二
+    //   2 = 活二
+    //   3 = 眠三 (一手能形成沖四)
+    //   4 = 活三 (一手能形成活四)
+    //   5 = 沖四 (一手能成五，對手必擋)
+    //   6 = 活四 / 雙沖四 (對手無法擋)
+    //   7 = 五 (已經獲勝)
+    //
+    // 演算法步驟：
+    //   1. 直接獲勝
+    //   2. 防對手直接獲勝
+    //   3. VCF (Victory by Continuous Four) 沖四連擊致勝搜尋
+    //   4. 對手 VCF 偵測並阻擋
+    //   5. Alpha-beta minimax 深度搜尋 + 形狀導向評估
+
+    // 形狀字串緩存
+    #shapeCache = new Map();
+
+    // 取得以 (row,col) 為中心、沿 (dr,dc) 方向的 9 格字串 (中心固定為 '1')
+    // 1=自己, 0=空, 2=對手或邊界
+    #getShapeLine(board, row, col, dr, dc, player) {
+        let s = '';
+        for (let i = -4; i <= 4; i++) {
+            if (i === 0) { s += '1'; continue; }
+            const r = row + dr * i, c = col + dc * i;
+            if (r < 0 || r >= 15 || c < 0 || c >= 15) s += '2';
+            else if (board[r][c] === player) s += '1';
+            else if (board[r][c] === 0) s += '0';
+            else s += '2';
+        }
+        return s;
+    }
+
+    // 將 9 字串分類為上述形狀 (帶緩存)
+    #classifyShape(line) {
+        const cached = this.#shapeCache.get(line);
+        if (cached !== undefined) return cached;
+        const r = this.#doClassify(line);
+        this.#shapeCache.set(line, r);
+        return r;
+    }
+
+    #doClassify(line) {
+        if (line.includes('11111')) return 7;
+        if (line.includes('011110')) return 6;
+
+        // 「成五點」數量：填入後能成五的空位個數
+        let fives = 0;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] === '0') {
+                const t = line.slice(0, i) + '1' + line.slice(i + 1);
+                if (t.includes('11111')) fives++;
+            }
+        }
+        if (fives >= 2) return 6;   // 雙沖四 ≈ 活四
+        if (fives === 1) return 5;  // 沖四
+
+        // 活三：填入後能形成活四
+        // 眠三：填入後能形成沖四
+        let openThree = false, sleepThree = false;
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] !== '0') continue;
+            const t = line.slice(0, i) + '1' + line.slice(i + 1);
+            if (t.includes('011110')) { openThree = true; break; }
+            if (sleepThree) continue;
+            for (let j = 0; j < t.length; j++) {
+                if (t[j] !== '0') continue;
+                const tt = t.slice(0, j) + '1' + t.slice(j + 1);
+                if (tt.includes('11111')) { sleepThree = true; break; }
+            }
+        }
+        if (openThree) return 4;
+        if (sleepThree) return 3;
+
+        // 活二：填入後能形成活三
+        for (let i = 0; i < line.length; i++) {
+            if (line[i] !== '0') continue;
+            const t = line.slice(0, i) + '1' + line.slice(i + 1);
+            for (let j = 0; j < t.length; j++) {
+                if (t[j] !== '0') continue;
+                const tt = t.slice(0, j) + '1' + t.slice(j + 1);
+                if (tt.includes('011110')) return 2;
+            }
+        }
+        return 1;
+    }
+
+    // 在 (row,col) 模擬落子 player，回傳 4 個方向形狀
+    #shapesAt(board, row, col, player) {
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        const out = [0,0,0,0];
+        for (let i = 0; i < 4; i++) {
+            const line = this.#getShapeLine(board, row, col, dirs[i][0], dirs[i][1], player);
+            out[i] = this.#classifyShape(line);
+        }
+        return out;
+    }
+
+    // 形狀組合是否為「直接獲勝或必勝」
+    // 五 / 活四 / 雙沖四 / 四三 / 雙活三
+    #isWinningShapes(shapes) {
+        let fours = 0, threes = 0;
+        for (const s of shapes) {
+            if (s === 7) return true;
+            if (s === 6) return true;
+            if (s === 5) fours++;
+            else if (s === 4) threes++;
+        }
+        if (fours >= 2) return true;
+        if (fours >= 1 && threes >= 1) return true;
+        if (threes >= 2) return true;
+        return false;
+    }
+
+    // 是否包含沖四以上 (強迫對手回應特定點)
+    #isForcingFour(shapes) {
+        for (const s of shapes) if (s >= 5) return true;
+        return false;
+    }
+
+    // 形狀分數
+    #shapeScore(s) {
+        // 0,1,2,3,4,5,6,7
+        return [0, 5, 50, 200, 1500, 1500, 50000, 1000000][s];
+    }
+
+    // 評估在 (row,col) 落子 player 的價值 (基於 4 方向形狀)
+    #evalMove(board, row, col, player) {
+        const shapes = this.#shapesAt(board, row, col, player);
+        let score = 0, fours = 0, threes = 0;
+        for (const s of shapes) {
+            score += this.#shapeScore(s);
+            if (s === 5 || s === 6) fours++;
+            else if (s === 4) threes++;
+        }
+        // 雙重威脅獎勵
+        if (fours >= 2) score += 500000;
+        else if (fours >= 1 && threes >= 1) score += 200000;
+        else if (threes >= 2) score += 100000;
+        return score;
+    }
+
+    // 找出所有「成五點」(player 在該空位落子可立即五連)
+    #findFivePoints(board, player) {
+        const points = [];
+        const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                if (board[r][c] !== 0) continue;
+                for (const [dr, dc] of dirs) {
+                    let cnt = 1;
+                    let nr = r + dr, nc = c + dc;
+                    while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && board[nr][nc] === player) {
+                        cnt++; nr += dr; nc += dc;
+                    }
+                    nr = r - dr; nc = c - dc;
+                    while (nr >= 0 && nr < 15 && nc >= 0 && nc < 15 && board[nr][nc] === player) {
+                        cnt++; nr -= dr; nc -= dc;
+                    }
+                    if (cnt >= 5) { points.push({ row: r, col: c }); break; }
+                }
+            }
+        }
+        return points;
+    }
+
+    // 棋盤上是否已存在 5 連
+    #hasFiveOnBoard(board, player) {
+        for (let r = 0; r < 15; r++) {
+            for (let c = 0; c < 15; c++) {
+                if (board[r][c] !== player) continue;
+                const dirs = [[0,1],[1,0],[1,1],[1,-1]];
+                for (const [dr, dc] of dirs) {
+                    const er = r + 4 * dr, ec = c + 4 * dc;
+                    if (er < 0 || er >= 15 || ec < 0 || ec >= 15) continue;
+                    let ok = true;
+                    for (let i = 1; i < 5; i++) {
+                        if (board[r + i*dr][c + i*dc] !== player) { ok = false; break; }
+                    }
+                    if (ok) return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    // VCF 沖四致勝搜尋：返回 attacker 致勝的第一手；找不到則 null
+    #vcfSearch(board, attacker, maxDepth) {
+        const cands = this.#getCandidates(board);
+        // 先排序：優先試形狀價值高的
+        const ordered = cands.map(({row, col}) => {
+            const sh = this.#shapesAt(board, row, col, attacker);
+            return { row, col, sh, score: sh.reduce((a, s) => a + this.#shapeScore(s), 0) };
+        }).sort((a, b) => b.score - a.score);
+
+        for (const m of ordered) {
+            if (this.#isWinningShapes(m.sh)) return { row: m.row, col: m.col };
+            if (!this.#isForcingFour(m.sh)) continue;
+            board[m.row][m.col] = attacker;
+            const ok = this.#vcfDefend(board, attacker, maxDepth - 1);
+            board[m.row][m.col] = 0;
+            if (ok) return { row: m.row, col: m.col };
+        }
+        return null;
+    }
+
+    // 攻方剛下沖四，防方必擋。判斷攻方能否續攻致勝
+    #vcfDefend(board, attacker, depth) {
+        if (depth <= 0) return false;
+        const defender = -attacker;
+        const fivePoints = this.#findFivePoints(board, attacker);
+        if (fivePoints.length === 0) return false; // 不是強制威脅
+        if (fivePoints.length >= 2) return true;   // 防不住，攻方下回合致勝
+        const block = fivePoints[0];
+        board[block.row][block.col] = defender;
+        // 防方擋的同時若達成 5 連 → 防方獲勝，VCF 失敗
+        if (this.#hasFiveOnBoard(board, defender)) {
+            board[block.row][block.col] = 0;
+            return false;
+        }
+        // 防方擋後若反過來形成成五點 (沖四反撲) → 攻方下一手得先擋，VCF 失敗
+        const defThreats = this.#findFivePoints(board, defender);
+        if (defThreats.length > 0) {
+            board[block.row][block.col] = 0;
+            return false;
+        }
+        // 攻方續攻
+        const cands = this.#getCandidates(board);
+        let success = false;
+        const ordered = cands.map(({row, col}) => {
+            const sh = this.#shapesAt(board, row, col, attacker);
+            return { row, col, sh, score: sh.reduce((a, s) => a + this.#shapeScore(s), 0) };
+        }).sort((a, b) => b.score - a.score);
+        for (const m of ordered) {
+            if (this.#isWinningShapes(m.sh)) { success = true; break; }
+            if (!this.#isForcingFour(m.sh)) continue;
+            board[m.row][m.col] = attacker;
+            const ok = this.#vcfDefend(board, attacker, depth - 1);
+            board[m.row][m.col] = 0;
+            if (ok) { success = true; break; }
+        }
+        board[block.row][block.col] = 0;
+        return success;
+    }
+
     #hardMove(board, candidates, aiPiece) {
+        this.#shapeCache = new Map();
         const opPiece = -aiPiece;
 
-        let scored = candidates.map(({ row, col }) => ({
+        // 預計算雙方形狀
+        const moves = candidates.map(({ row, col }) => ({
             row, col,
-            attack: this.#evaluatePosition(board, row, col, aiPiece),
-            defense: this.#evaluatePosition(board, row, col, opPiece)
+            myShapes: this.#shapesAt(board, row, col, aiPiece),
+            opShapes: this.#shapesAt(board, row, col, opPiece)
         }));
 
-        // 必勝
-        const winMove = scored.find(m => m.attack >= 100000);
-        if (winMove) return { row: winMove.row, col: winMove.col };
-
-        // 擋住對手必勝
-        const mustBlock = scored.filter(m => m.defense >= 100000);
-        if (mustBlock.length > 0) {
-            mustBlock.sort((a, b) => b.attack - a.attack);
-            return { row: mustBlock[0].row, col: mustBlock[0].col };
+        // 1. 我方一手致勝 (五/活四/雙沖四/四三/雙活三)
+        for (const m of moves) {
+            if (this.#isWinningShapes(m.myShapes)) return { row: m.row, col: m.col };
         }
 
-        // 雙重威脅
-        const doubleThreat = scored.find(m => m.attack >= 25000);
-        if (doubleThreat) return { row: doubleThreat.row, col: doubleThreat.col };
-
-        // 擋住對手雙重威脅
-        const blockDouble = scored.find(m => m.defense >= 25000);
-        if (blockDouble) return { row: blockDouble.row, col: blockDouble.col };
-
-        // 活四
-        const openFour = scored.find(m => m.attack >= 20000);
-        if (openFour) return { row: openFour.row, col: openFour.col };
-
-        // 擋住對手活四
-        const blockOpenFour = scored.find(m => m.defense >= 20000);
-        if (blockOpenFour) return { row: blockOpenFour.row, col: blockOpenFour.col };
-        
-        // 深度推演
-        scored.forEach(m => m.prelim = m.attack + m.defense * 1.1);
-        scored.sort((a, b) => b.prelim - a.prelim);
-        const topCandidates = scored.slice(0, 15);
-
-        let bestScore = -Infinity;
-        let bestMove = topCandidates[0];
-
-        for (const move of topCandidates) {
-            // 模擬落子
-            board[move.row][move.col] = aiPiece;
-
-            // 快速檢查此步是否直接獲勝
-            if (this.#checkWinAt(board, move.row, move.col)) {
-                board[move.row][move.col] = 0;
-                return { row: move.row, col: move.col };
+        // 2. 對手一手致勝 → 必須阻止 (擋在對手會建立致勝形狀的位置)
+        const mustBlock = moves.filter(m => this.#isWinningShapes(m.opShapes));
+        if (mustBlock.length > 0) {
+            // 多個阻擋點：選擇同時為自身強進攻（最好同時形成沖四以上）
+            let best = mustBlock[0], bestScore = -Infinity;
+            for (const m of mustBlock) {
+                const myScore = this.#evalMove(board, m.row, m.col, aiPiece);
+                const counter = this.#isForcingFour(m.myShapes) ? 100000 : 0;
+                const total = myScore + counter;
+                if (total > bestScore) { bestScore = total; best = m; }
             }
-            
-            const score = this.#minimax(board, 2, false, aiPiece, -Infinity, Infinity);
-            board[move.row][move.col] = 0;
+            return { row: best.row, col: best.col };
+        }
 
-            // 位置分數
-            const centerBonus = (7 - Math.abs(move.row - 7)) + (7 - Math.abs(move.col - 7));
-            const finalScore = score + centerBonus * 3;
+        // 3. VCF 沖四連擊致勝
+        const vcf = this.#vcfSearch(board, aiPiece, 10);
+        if (vcf) return vcf;
 
+        // 4. 對手是否能 VCF 致勝？若能，先封堵其首手
+        const oppVcf = this.#vcfSearch(board, opPiece, 8);
+        if (oppVcf) {
+            // 我方在對手 VCF 起點落子，同時嘗試自己反先
+            const myAtSpot = this.#shapesAt(board, oppVcf.row, oppVcf.col, aiPiece);
+            // 若我方在此能進攻 (沖四以上) 更好
+            if (this.#isForcingFour(myAtSpot) || this.#isWinningShapes(myAtSpot)) {
+                return oppVcf;
+            }
+            // 否則仍以該點封堵
+            return oppVcf;
+        }
+
+        // 5. Alpha-beta minimax (深度 4)
+        moves.forEach(m => {
+            const my = m.myShapes.reduce((a, s) => a + this.#shapeScore(s), 0);
+            const op = m.opShapes.reduce((a, s) => a + this.#shapeScore(s), 0);
+            m.order = my * 1.05 + op;
+        });
+        moves.sort((a, b) => b.order - a.order);
+        const top = moves.slice(0, 12);
+
+        let bestScore = -Infinity, bestMove = top[0];
+        for (const m of top) {
+            board[m.row][m.col] = aiPiece;
+            const score = this.#minimax(board, 3, false, aiPiece, -Infinity, Infinity);
+            board[m.row][m.col] = 0;
+            const center = (7 - Math.abs(m.row - 7)) + (7 - Math.abs(m.col - 7));
+            const finalScore = score + center * 2 + m.order * 0.0005;
             if (finalScore > bestScore) {
                 bestScore = finalScore;
-                bestMove = move;
+                bestMove = m;
             }
         }
-
         return { row: bestMove.row, col: bestMove.col };
     }
 
     /**
-     * Minimax 搜尋
-     * @param {number[][]} board 棋盤狀態
-     * @param {number} depth 剩餘搜尋深度
-     * @param {boolean} isMaximizing 是否為 AI 的回合 (最大化)
-     * @param {number} aiPiece AI 棋子
-     * @param {number} alpha Alpha 值
-     * @param {number} beta Beta 值
-     * @returns {number} 評估分數
+     * Alpha-beta minimax 搜尋 (使用形狀評估)
      */
     #minimax(board, depth, isMaximizing, aiPiece, alpha, beta) {
-        if (depth === 0) {
-            return this.#evaluateBoard(board, aiPiece);
-        }
+        if (depth === 0) return this.#evaluateBoard(board, aiPiece);
 
         const piece = isMaximizing ? aiPiece : -aiPiece;
         const opPiece = -piece;
         const candidates = this.#getCandidates(board);
         if (candidates.length === 0) return this.#evaluateBoard(board, aiPiece);
 
-        // 評分候補
-        let scored = candidates.map(({ row, col }) => ({
-            row, col,
-            score: this.#evaluatePosition(board, row, col, piece) +
-                   this.#evaluatePosition(board, row, col, opPiece) * 0.9
-        }));
-        scored.sort((a, b) => b.score - a.score);
+        // 計算每個候選的雙方形狀，用於排序與威脅檢測
+        const scored = candidates.map(({ row, col }) => {
+            const my = this.#shapesAt(board, row, col, piece);
+            const op = this.#shapesAt(board, row, col, opPiece);
+            return { row, col, my, op };
+        });
 
-        // 剪枝
-        const maxBranch = depth >= 2 ? 10 : 8;
-        const limited = scored.slice(0, maxBranch);
+        // 我方此刻能直接獲勝
+        for (const m of scored) {
+            if (this.#isWinningShapes(m.my)) {
+                return isMaximizing ? (500000 + depth * 1000) : -(500000 + depth * 1000);
+            }
+        }
+        // 對手有致勝威脅 → 限制候選為「必擋」位置
+        const forcedBlocks = scored.filter(m => this.#isWinningShapes(m.op));
+        let pool = forcedBlocks.length > 0 ? forcedBlocks : scored;
+
+        pool.forEach(m => {
+            const ms = m.my.reduce((a, s) => a + this.#shapeScore(s), 0);
+            const os = m.op.reduce((a, s) => a + this.#shapeScore(s), 0);
+            m._ord = ms + os * 0.95;
+        });
+        pool.sort((a, b) => b._ord - a._ord);
+
+        // 動態剪枝寬度
+        const branch = depth >= 3 ? 8 : depth >= 2 ? 6 : 4;
+        pool = pool.slice(0, branch);
 
         if (isMaximizing) {
             let maxEval = -Infinity;
-            for (const { row, col } of limited) {
+            for (const { row, col } of pool) {
                 board[row][col] = aiPiece;
-
-                // 快速勝利偵測
                 if (this.#checkWinAt(board, row, col)) {
                     board[row][col] = 0;
-                    return 500000 + depth * 10000; // 越早獲勝分數越高
+                    return 500000 + depth * 1000;
                 }
-
                 const evalScore = this.#minimax(board, depth - 1, false, aiPiece, alpha, beta);
                 board[row][col] = 0;
-
-                maxEval = Math.max(maxEval, evalScore);
-                alpha = Math.max(alpha, evalScore);
-                if (beta <= alpha) break; // Beta 剪枝
+                if (evalScore > maxEval) maxEval = evalScore;
+                if (evalScore > alpha) alpha = evalScore;
+                if (beta <= alpha) break;
             }
             return maxEval;
         } else {
             let minEval = Infinity;
-            for (const { row, col } of limited) {
+            for (const { row, col } of pool) {
                 board[row][col] = -aiPiece;
-
-                // 快速勝利偵測
                 if (this.#checkWinAt(board, row, col)) {
                     board[row][col] = 0;
-                    return -500000 - depth * 10000; // 越早被打敗分數越低
+                    return -500000 - depth * 1000;
                 }
-
                 const evalScore = this.#minimax(board, depth - 1, true, aiPiece, alpha, beta);
                 board[row][col] = 0;
-
-                minEval = Math.min(minEval, evalScore);
-                beta = Math.min(beta, evalScore);
-                if (beta <= alpha) break; // Alpha 剪枝
+                if (evalScore < minEval) minEval = evalScore;
+                if (evalScore < beta) beta = evalScore;
+                if (beta <= alpha) break;
             }
             return minEval;
         }
