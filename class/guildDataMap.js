@@ -71,7 +71,7 @@ module.exports = class GuildDataMap {
                 const channel = DCAccess.getChannel(data.earthquakeAnnounceChannel);
                 if (!channel) return;
                 if (!DCAccess.permissionsCheck(channel, Discord.PermissionsBitField.Flags.SendMessages)) return;
-                channel.send({ embeds: [infoEmbed] });
+                channel.send({ embeds: [infoEmbed] }).catch(err => console.log(err));
             }
         });
     }
