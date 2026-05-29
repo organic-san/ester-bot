@@ -32,7 +32,10 @@ module.exports = {
             ],
             makeCache: Discord.Options.cacheWithLimits({
                 MessageManager: 50,
-                GuildMemberManager: 200,
+                GuildMemberManager: {
+                    maxSize: 200,
+                    keepOverLimit: member => member.id === member.client.user.id,
+                },
             }),
             sweepers: {
                 messages: { interval: 300, lifetime: 600 },

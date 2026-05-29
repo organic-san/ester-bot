@@ -24,6 +24,15 @@ for (const file of commandFiles) {
     DCAccess.setCommand(command);
 }
 
+// 載入 models 子系統
+const subsys = fs.readdirSync('./models').filter(file => file.endsWith('.js'));
+for (const file of subsys) {
+    const mod = require(`./models/${file}`);
+    if (mod && mod.earthquakeInterval) {
+        intervals.push(mod.earthquakeInterval);
+    }
+}
+
 let isready = false;
 
 // 連上線時的事件
@@ -34,16 +43,6 @@ client.once(Discord.Events.ClientReady, async () => {
 
     // 上線等待處理
     setTimeout(() => {
-        // 啟動大部分功能
-        const subsys = fs.readdirSync('./models').filter(file => file.endsWith('.js'));
-        for (const file of subsys) {
-            const mod = require(`./models/${file}`);
-            // 收集子系統匯出的 interval，用於關機清理
-            if (mod && mod.earthquakeInterval) {
-                intervals.push(mod.earthquakeInterval);
-            }
-        }
-
         console.log(`設定成功: ${new Date()}`);
         DCAccess.log(`登入成功: ${Discord.time(new Date())}`);
 

@@ -24,7 +24,7 @@ DCAccess.on(Discord.Events.InteractionCreate,
         if (!DCAccess.permissionsCheck(interaction.channel, Discord.PermissionsBitField.Flags.SendMessages) ||
             !DCAccess.permissionsCheck(interaction.channel, Discord.PermissionsBitField.Flags.AddReactions) ||
             !DCAccess.permissionsCheck(interaction.channel, Discord.PermissionsBitField.Flags.ViewChannel))
-            return interaction.reply({ content: "我不能在這裡說話!!", ephemeral: true });
+            return interaction.reply({ content: "我不能在這裡說話!", ephemeral: true });
 
         // 控制台紀錄
         let commandName = "";
