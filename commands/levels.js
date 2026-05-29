@@ -54,8 +54,11 @@ module.exports = {
      * @param {Discord.CommandInteraction} interaction 
      */
     async execute(interaction) {
-        if (!(interaction.guild.members.cache.get((interaction.options.getUser('user') ?? interaction.user).id)))
-            return interaction.reply({ content: "我沒辦法在這個伺服器中找到他。", ephemeral: true });
+        const targetId = (interaction.options.getUser('user') ?? interaction.user).id;
+        if (!interaction.guild.members.cache.get(targetId)) {
+            const fetched = await interaction.guild.members.fetch(targetId).catch(() => null);
+            if (!fetched) return interaction.reply({ content: "我沒辦法在這個伺服器中找到他。", ephemeral: true });
+        }
 
         const guild = new GuildDataMap().get(interaction.guild.id);
 
