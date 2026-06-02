@@ -45,7 +45,12 @@ const earthquake = async (url) => {
 };
 
 const announcement = async (msgList, level) => {
-    for (i of msgList) {
+    const key = level === small ? "lastSmallEarthquakeTime" : "lastHugeEarthquakeTime";
+    for (const i of msgList) {
+        const lastDate = new Date(Record.get(key) || "2023-08-01T00:00:00");
+        const newDate = new Date(i.eqTime);
+        if (newDate - lastDate <= 0) continue;
+
         const embed = new Discord.EmbedBuilder()
             .setColor(process.env.EMBEDCOLOR)
             .setTitle(`🚨 地震警報 🚨`)
@@ -65,12 +70,7 @@ const announcement = async (msgList, level) => {
         guildDataMap.announceEarthquake(level, embed);
 
         // 時間記錄更新
-        const lastEqTime = Record.get(level === small ? "lastSmallEarthquakeTime" : "lastHugeEarthquakeTime");
-        const lastDate = new Date(lastEqTime || "2023-08-01T00:00:00");
-        const newDate = new Date(i.eqTime);
-        if (newDate - lastDate > 0) {
-            Record.set((level === small ? "lastSmallEarthquakeTime" : "lastHugeEarthquakeTime"), newDate.getTime() + 1000);
-        }
+        Record.set(key, newDate.getTime() + 1000);
     }
 }
 
