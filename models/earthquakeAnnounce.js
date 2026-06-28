@@ -53,7 +53,7 @@ const announcement = async (msgList, level) => {
 
         const embed = new Discord.EmbedBuilder()
             .setColor(process.env.EMBEDCOLOR)
-            .setTitle(`🚨 地震警報 🚨`)
+            .setTitle(`🚨 地震報告 🚨`)
             .setURL(i.web)
             .setDescription(i.conc)
             .addFields(
@@ -61,11 +61,11 @@ const announcement = async (msgList, level) => {
                 { name: '⏰ 發生時間', value: `${i.eqTime}`, inline: true },
                 { name: '💥 芮氏規模', value: `${i.val}`, inline: true },
                 { name: '🌍 深度', value: `${i.dep} 公里`, inline: true },
-                { name: '_ _', value: "注意地震安全，保持冷靜勿驚慌，並做好防震準備。" }
+                { name: '_ _', value: "本報告於地震發生後 1 ~ 3 分鐘內發布。注意地震安全，保持冷靜勿驚慌，並做好防震準備。" }
             )
             .setImage(i.img)
             .setTimestamp()
-            .setFooter({ text: `ester bot 地震通知 | 資料來源: 交通部中央氣象署`, iconURL: DCAccess.client.avatar })
+            .setFooter({ text: `ester bot 地震報告 | 資料來源: 交通部中央氣象署`, iconURL: DCAccess.client.avatar })
 
         guildDataMap.announceEarthquake(level, embed);
 
