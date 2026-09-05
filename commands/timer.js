@@ -32,6 +32,9 @@ module.exports = {
                         .setDescription('要刪除的計時器ID')
                         .setRequired(true)
                 )
+        ).addSubcommand(sub =>
+            sub.setName('list')
+                .setDescription('查看正在倒數的計時器')
         ),
     tag: "interaction",
     restoreTimers,
@@ -47,6 +50,8 @@ module.exports = {
             return handleSet(interaction);
         } else if (subcommand === 'delete') {
             return handleDelete(interaction);
+        } else if (subcommand === 'list') {
+            return handleList(interaction);
         }
     },
 };
@@ -116,6 +121,52 @@ async function handleDelete(interaction) {
     TimerDB.remove(id);
     interaction.reply(`已刪除計時器 \`${id}\`（原設定時間: <t:${Math.floor(timerData.endTimestamp / 1000)}:R>）`);
 }
+
+/**
+ * 查看正在倒數的計時器（僅顯示該使用者設定且尚未結束者）
+ * @param {Discord.CommandInteraction} interaction
+ */
+async function handleList(interaction) {
+    const timers = TimerDB.getByUserId(interaction.user.id);
+    const now = Date.now();
+    const activeTimers = timers.filter(t => t.endTimestamp > now);
+
+    if (activeTimers.length === 0) {
+        return interaction.reply({
+            content: '你目前沒有正在倒數的計時器。',
+            ephemeral: true,
+        });
+    }
+
+    const embed = new Discord.EmbedBuilder()
+        .setColor(process.env.EMBEDCOLOR || '#00AE86')
+        .setTitle('⏱️ 正在倒數的計時器')
+        .setDescription(`你目前有 **${activeTimers.length}** 個計時器正在倒數中：`)
+        .setTimestamp();
+
+    // Discord Embed 限制最多 25 個 fields
+    const displayList = activeTimers.slice(0, 25);
+
+    for (const timer of displayList) {
+        const endSec = Math.floor(timer.endTimestamp / 1000);
+        const msg = timer.message ? `\n> 備註: ${timer.message}` : '';
+        embed.addFields({
+            name: `ID: \`${timer.id}\``,
+            value: `- 剩餘時間: <t:${endSec}:R>\n- 預計結束: <t:${endSec}:f>\n- 提醒頻道: <#${timer.channelId}>${msg}`,
+            inline: false,
+        });
+    }
+
+    if (activeTimers.length > 25) {
+        embed.setFooter({
+            text: `${interaction.user.tag} · 僅顯示前 25 個計時器（尚有 ${activeTimers.length - 25} 個未顯示）`,
+            iconURL: interaction.user.displayAvatarURL({ extension: 'png' }),
+        });
+    }
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
 
 /**
  * 產生 6 位 base36 唯一ID，碰撞時自動重新產生

@@ -6,6 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node ester.js",
+    "dev": "node ester.js",
     "init": "node datainit.js",
     "s": "node ester-slash.js",
     "sg": "node ester-slash-global.js"

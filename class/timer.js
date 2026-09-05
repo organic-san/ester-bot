@@ -9,6 +9,7 @@ const stmtInsert = db.prepare(
 const stmtDelete = db.prepare(`DELETE FROM ${process.env.TIMERTABLE} WHERE id = ?`);
 const stmtSelectAll = db.prepare(`SELECT * FROM ${process.env.TIMERTABLE}`);
 const stmtSelectById = db.prepare(`SELECT * FROM ${process.env.TIMERTABLE} WHERE id = ?`);
+const stmtSelectByUserId = db.prepare(`SELECT * FROM ${process.env.TIMERTABLE} WHERE user_id = ? ORDER BY end_timestamp ASC`);
 
 module.exports = {
     /**
@@ -67,4 +68,22 @@ module.exports = {
             endTimestamp: row.end_timestamp,
         }));
     },
+
+    /**
+     * 根據使用者 ID 取得該使用者的所有計時器
+     * @param {string} userId
+     * @returns {Array<{id: string, channelId: string, userId: string, message: string|null, displayTime: string, endTimestamp: number}>}
+     */
+    getByUserId(userId) {
+        const rows = stmtSelectByUserId.all(userId);
+        return rows.map(row => ({
+            id: row.id,
+            channelId: row.channel_id,
+            userId: row.user_id,
+            message: row.message,
+            displayTime: row.display_time,
+            endTimestamp: row.end_timestamp,
+        }));
+    },
 };
+
