@@ -135,7 +135,7 @@ async function handleDelete(interaction) {
  * @param {Discord.CommandInteraction} interaction
  */
 async function handleList(interaction) {
-    const scope = interaction.options.getString('scope') ?? (interaction.guild ? 'channel' : 'user');
+    const scope = interaction.options.getString('scope') ?? 'user';
     const timers = scope === 'channel'
         ? TimerDB.getByChannelId(interaction.channel.id)
         : TimerDB.getByUserId(interaction.user.id);
