@@ -1,6 +1,9 @@
 const Discord = require('discord.js');
 const TimerDB = require('../class/timer');
 
+// 儲存記憶體中運行中的 setTimeout handle (key: timerId, value: timeoutHandle)
+const activeTimeouts = new Map();
+
 module.exports = {
     data: new Discord.SlashCommandBuilder()
         .setName('timer')
@@ -126,9 +129,17 @@ async function handleDelete(interaction) {
         return interaction.reply({ content: '只能刪除自己設定的計時器。', ephemeral: true });
     }
 
+    // 清理記憶體中的計時器，防止已刪除的計時器繼續觸發
+    const timeout = activeTimeouts.get(id);
+    if (timeout) {
+        clearTimeout(timeout);
+        activeTimeouts.delete(id);
+    }
+
     TimerDB.remove(id);
     interaction.reply(`已刪除計時器 \`${id}\`（原設定時間: <t:${Math.floor(timerData.endTimestamp / 1000)}:R>）`);
 }
+
 
 /**
  * 查看正在倒數的計時器
@@ -210,6 +221,11 @@ function scheduleTimer(client, timerData) {
     const delay = timerData.endTimestamp - now;
 
     const fire = () => {
+        activeTimeouts.delete(timerData.id);
+
+        // 二次確認：若該計時器已被刪除，則不再發送提醒
+        if (!TimerDB.getById(timerData.id)) return;
+
         client.channels.fetch(timerData.channelId).then(channel => {
             if (!channel) return;
             const userMention = `<@${timerData.userId}>`;
@@ -222,17 +238,21 @@ function scheduleTimer(client, timerData) {
             console.error('計時器發送提醒失敗:', err);
         }).finally(() => {
             TimerDB.remove(timerData.id);
+            activeTimeouts.delete(timerData.id);
         });
     };
 
     if (delay <= 0) {
         fire();
     } else if (delay > MAX_TIMEOUT) {
-        setTimeout(() => scheduleTimer(client, timerData), MAX_TIMEOUT);
+        const timeout = setTimeout(() => scheduleTimer(client, timerData), MAX_TIMEOUT);
+        activeTimeouts.set(timerData.id, timeout);
     } else {
-        setTimeout(fire, delay);
+        const timeout = setTimeout(fire, delay);
+        activeTimeouts.set(timerData.id, timeout);
     }
 }
+
 
 /**
  * 機器人啟動時從資料庫恢復所有計時器
